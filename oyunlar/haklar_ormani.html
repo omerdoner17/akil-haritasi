@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Haklar Ormanı - Çocuk Hakları Yolculuğu</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Fredoka, Nunito & Inter for Turkish typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800;900&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        fredoka: ['Fredoka', 'sans-serif'],
+                        nunito: ['Nunito', 'sans-serif'],
+                        inter: ['Inter', 'sans-serif']
+                    },
+                    colors: {
+                        forestDark: '#0f291e',
+                        forestGreen: '#1b4332',
+                        amberGold: '#ffb703',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Nunito', 'Inter', sans-serif;
+            background-color: #0d1b2a;
+            overflow-x: hidden;
+            touch-action: manipulation;
+            line-height: 1.6;
+        }
+        h1, h2, h3, h4, .font-fun {
+            font-family: 'Fredoka', 'Nunito', sans-serif;
+            line-height: 1.35;
+            padding-bottom: 2px;
+        }
+
+        /* Glassmorphism Panel Styles */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(16px);
+            border: 3px solid rgba(255, 255, 255, 0.9);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.45);
+        }
+
+        .glass-dark {
+            background: rgba(13, 27, 42, 0.92);
+            backdrop-filter: blur(14px);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        #map-wrapper {
+            position: relative;
+            width: 100%;
+            height: calc(100vh - 80px);
+            min-height: 600px;
+            background: linear-gradient(135deg, #0f291e 0%, #1b4332 50%, #081c15 100%);
+            overflow: hidden;
+        }
+
+        #map-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* Animated Pawn Element */
+        #avatar-pawn {
+            position: absolute;
+            width: 68px;
+            height: 68px;
+            z-index: 20;
+            transform: translate(-50%, -85%);
+            transition: left 1.2s cubic-bezier(0.34, 1.3, 0.64, 1), top 1.2s cubic-bezier(0.34, 1.3, 0.64, 1);
+            filter: drop-shadow(0 12px 18px rgba(0,0,0,0.6));
+            pointer-events: none;
+        }
+
+        /* MCQ Option Cards */
+        .opt-card {
+            transition: all 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border-bottom-width: 5px;
+            padding-bottom: 10px;
+            padding-top: 10px;
+            line-height: 1.55;
+        }
+        .opt-card:hover {
+            transform: translateY(-3px) scale(1.01);
+            box-shadow: 0 10px 20px -3px rgba(0, 0, 0, 0.25);
+        }
+        .opt-card:active {
+            transform: translateY(2px) scale(0.99);
+            border-bottom-width: 2px;
+        }
+
+        /* Wrong answer shake animation */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-10px); }
+            40%, 80% { transform: translateX(10px); }
+        }
+        .shake-animation {
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { transform: scale(1); filter: drop-shadow(0 0 12px #ffb703); }
+            50% { transform: scale(1.18); filter: drop-shadow(0 0 25px #ffd166); }
+        }
+
+        .pawn-pulse {
+            animation: pulseGlow 2.2s infinite ease-in-out;
+        }
+
+        @keyframes startBtnPulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 15px rgba(255, 183, 3, 0.6); }
+            50% { transform: scale(1.06); box-shadow: 0 0 30px rgba(255, 209, 102, 0.9); }
+        }
+
+        .start-btn-glow {
+            animation: startBtnPulse 1.8s infinite ease-in-out;
+        }
+
+        .svg-container svg {
+            width: 100%;
+            height: 100%;
+            max-height: 130px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between text-slate-800">
+
+    <header class="w-full bg-slate-900/95 border-b-4 border-amber-400 p-2 sm:p-3 sticky top-0 z-30 shadow-xl text-white">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
+            
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-tr from-amber-400 to-yellow-300 rounded-2xl flex items-center justify-center text-emerald-950 text-xl sm:text-2xl shadow-lg font-bold transform -rotate-3 border-2 border-amber-200">
+                    <i class="fa-solid fa-map-location-dot"></i>
+                </div>
+                <div>
+                    <h1 class="text-base sm:text-xl font-bold text-amber-300 leading-tight font-fun tracking-wide">Haklar Ormanı</h1>
+                    <p class="text-[10px] sm:text-xs text-emerald-400 font-semibold">Türkiye Yüzyılı Maarif Modeli 🧭</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 sm:gap-3 bg-slate-800/90 px-3.5 py-1.5 rounded-2xl border border-slate-700 shadow-inner">
+                <div class="flex items-center space-x-1.5">
+                    <i class="fa-solid fa-flag-checkered text-emerald-400 text-sm sm:text-base"></i>
+                    <span id="hud-station-text" class="font-fun text-xs sm:text-sm font-bold text-emerald-300">Durak: 1 / 15</span>
+                </div>
+                <div class="h-4 w-0.5 bg-slate-700"></div>
+                <div class="flex items-center space-x-1">
+                    <i class="fa-solid fa-star text-yellow-400 text-base sm:text-lg animate-pulse"></i>
+                    <span id="hud-stars" class="font-fun text-sm sm:text-base font-bold text-yellow-300">0</span>
+                </div>
+                <div class="h-4 w-0.5 bg-slate-700"></div>
+                <div class="flex items-center space-x-1">
+                    <i class="fa-solid fa-trophy text-amber-400 text-sm sm:text-base"></i>
+                    <span id="hud-score" class="font-fun text-xs sm:text-base font-bold text-amber-200">0 P</span>
+                </div>
+                <div class="h-4 w-0.5 bg-slate-700"></div>
+                <button id="sound-btn" onclick="toggleSound()" class="w-8 h-8 rounded-xl bg-slate-700 hover:bg-slate-600 text-amber-300 flex items-center justify-center transition" title="Sesi Aç/Kapat">
+                    <i id="sound-icon" class="fa-solid fa-volume-high text-xs sm:text-sm"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main id="map-wrapper" class="relative flex-grow">
+        <canvas id="map-canvas"></canvas>
+
+        <!-- Pawn Avatar -->
+        <div id="avatar-pawn" class="pawn-pulse">
+            <div class="relative w-full h-full">
+                <div class="w-14 h-14 bg-gradient-to-tr from-amber-400 via-yellow-300 to-amber-200 rounded-full border-4 border-white shadow-2xl flex items-center justify-center text-2xl sm:text-3xl text-slate-900">
+                    <span id="avatar-emoji">🧒</span>
+                </div>
+                <div class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-0 h-0 border-l-8 border-l-transparent border-r-8 border-r-transparent border-t-8 border-t-amber-400"></div>
+            </div>
+        </div>
+
+        <!-- Controls HUD Top Left -->
+        <div class="absolute top-4 left-4 z-20 flex flex-wrap gap-2">
+            <button onclick="openCharacterSelectorModal()" class="glass-dark hover:bg-slate-800 text-amber-300 px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2 border border-slate-600 shadow-lg active:scale-95 transition font-fun">
+                <span id="current-avatar-icon" class="text-lg">🧒</span>
+                <span id="current-avatar-title">Mert - Kâşif</span>
+                <i class="fa-solid fa-arrows-rotate text-amber-400 ml-1"></i>
+            </button>
+        </div>
+
+        <!-- Dynamic Manual Entry Button (Appears when character arrives at current station) -->
+        <div class="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 w-full max-w-sm px-4">
+            <button id="start-station-btn" onclick="openQuestionModal()" class="w-full start-btn-glow bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 hover:from-amber-500 hover:to-yellow-500 text-slate-950 font-fun text-base sm:text-lg py-3.5 px-6 rounded-3xl shadow-2xl border-b-4 border-amber-700 active:translate-y-1 transition flex items-center justify-center gap-3 font-bold text-center">
+                <i class="fa-solid fa-play text-xl animate-bounce"></i>
+                <span id="start-station-btn-text">1. Durağa Giriş Yap ve Başla</span>
+            </button>
+        </div>
+
+        <!-- Map Info Guide Box -->
+        <div class="absolute bottom-4 right-4 z-20 glass-dark text-white p-3.5 sm:p-4 rounded-2xl max-w-xs shadow-2xl hidden md:block border border-slate-700">
+            <div class="flex items-center space-x-2 text-amber-300 font-bold text-xs uppercase mb-1 font-fun">
+                <i class="fa-solid fa-compass"></i>
+                <span id="info-hud-title">Harita Rehberi</span>
+            </div>
+            <p id="info-hud-desc" class="text-xs text-slate-200 font-semibold leading-relaxed">
+                Karakteriniz durağa ulaştığında aşağıdaki "İstasyona Giriş Yap" butonuna tıklayarak soruyu açabilirsiniz.
+            </p>
+        </div>
+    </main>
+
+    <!-- MULTI-CHARACTER SELECTOR MODAL -->
+    <div id="character-modal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-5 hidden">
+        <div class="glass-panel max-w-2xl w-full rounded-3xl p-5 sm:p-6 relative overflow-hidden shadow-2xl border-4 border-amber-300 text-center">
+            
+            <div class="flex justify-between items-center mb-4 pb-2 border-b border-slate-200">
+                <h3 class="text-lg sm:text-xl font-bold text-slate-900 font-fun flex items-center gap-2">
+                    <i class="fa-solid fa-users text-amber-500"></i>
+                    <span>Karakterini Seç</span>
+                </h3>
+                <button onclick="closeCharacterSelectorModal()" class="w-8 h-8 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold flex items-center justify-center">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Cooldown / Transition Overlay -->
+            <div id="char-transition-overlay" class="absolute inset-0 bg-slate-900/95 backdrop-blur-md z-30 flex flex-col items-center justify-center p-6 text-white hidden">
+                <div class="w-20 h-20 bg-amber-400 text-slate-950 rounded-full flex items-center justify-center text-4xl mb-4 shadow-xl border-4 border-white animate-bounce" id="transition-avatar-icon">
+                    🧒
+                </div>
+                <h4 id="transition-avatar-name" class="text-2xl font-bold text-amber-300 font-fun mb-2">Mert - Kâşif</h4>
+                <p class="text-sm text-slate-200 font-semibold mb-4">Karakterin Hazırlanıyor...</p>
+                
+                <div class="w-48 bg-slate-700 h-3 rounded-full overflow-hidden border border-slate-500">
+                    <div id="transition-bar" class="bg-gradient-to-r from-amber-400 to-yellow-300 h-full w-0 transition-all ease-linear duration-1500"></div>
+                </div>
+            </div>
+
+            <!-- 8 Rich Character Cards Grid -->
+            <div id="character-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-3 my-2">
+                <!-- Dynamically rendered character cards -->
+            </div>
+
+            <p class="text-xs text-slate-500 font-semibold mt-3">Karakter seçtiğinizde 1.5 saniyelik hazırlık animasyonu sonrasında oyun güncellenecektir.</p>
+        </div>
+    </div>
+
+    <!-- QUESTION MODAL -->
+    <div id="question-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-5 hidden">
+        <div id="modal-card" class="glass-panel max-w-2xl w-full rounded-3xl p-5 sm:p-6 relative overflow-hidden shadow-2xl border-4 border-amber-300">
+            
+            <div class="flex justify-between items-center mb-2 pb-2 border-b border-slate-200">
+                <span id="modal-station-tag" class="bg-gradient-to-r from-emerald-600 to-teal-700 text-white font-fun text-xs sm:text-sm px-3 py-1 rounded-full shadow flex items-center gap-2 font-bold">
+                    <i class="fa-solid fa-location-dot"></i>
+                    <span>1. Durak: Yaşama Vadisi</span>
+                </span>
+                <span class="text-xs font-bold text-amber-900 bg-amber-100 px-3 py-1 rounded-xl border border-amber-300 font-fun">
+                    Soru <span id="modal-q-num">1</span> / 15
+                </span>
+            </div>
+
+            <!-- SVG Illustration -->
+            <div id="modal-svg-wrapper" class="w-full h-28 sm:h-32 bg-gradient-to-b from-sky-100 to-emerald-50 rounded-2xl flex items-center justify-center p-2 mb-3 border border-emerald-100 shadow-inner overflow-hidden svg-container">
+            </div>
+
+            <!-- Question Scenario -->
+            <div class="text-left mb-2">
+                <h3 id="modal-scenario-title" class="text-base sm:text-lg font-bold text-slate-900 mb-1 font-fun">
+                    Ata'nın Sağlıklı Yaşamı
+                </h3>
+                <p id="modal-scenario-text" class="text-xs sm:text-sm text-slate-700 font-semibold leading-relaxed bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                    Ata, doğduğu andan itibaren ailesinin sevgisiyle büyümekte; temiz, güvenli ve sağlıklı bir ortamda yaşamını sürdürmektedir.
+                </p>
+            </div>
+
+            <!-- Question Prompt -->
+            <div class="pt-1 mb-2">
+                <p id="modal-question-prompt" class="font-bold text-xs sm:text-sm text-emerald-950 font-fun flex items-center gap-2">
+                    <i class="fa-solid fa-circle-question text-amber-500 text-base"></i>
+                    <span>Bu durum, çocuğun hangi temel hakkı ile doğrudan ilgilidir?</span>
+                </p>
+            </div>
+
+            <!-- Dynamic Hint Banner for Incorrect Attempts -->
+            <div id="modal-hint-box" class="hidden mb-2 p-2.5 bg-rose-50 border-2 border-rose-300 rounded-2xl text-rose-900 text-xs font-bold flex items-center gap-2 animate-pulse">
+                <i class="fa-solid fa-triangle-exclamation text-rose-600 text-base shrink-0"></i>
+                <span id="modal-hint-text">Yanlış seçim yapıldı. Lütfen soruyu tekrar inceleyerek doğru şıkkı bulunuz.</span>
+            </div>
+
+            <!-- Options Grid -->
+            <div id="modal-options-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            </div>
+
+        </div>
+    </div>
+
+    <!-- MAARIF MODELI REFLECTION / SUCCESS MODAL -->
+    <div id="reflection-modal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="glass-panel max-w-lg w-full rounded-3xl p-6 sm:p-8 text-center relative border-4 border-amber-400">
+            
+            <div class="w-20 h-20 mx-auto -mt-14 mb-3 rounded-full flex items-center justify-center text-4xl shadow-xl border-4 border-white bg-emerald-500 text-white animate-bounce">
+                <i class="fa-solid fa-check"></i>
+            </div>
+
+            <h3 class="text-2xl sm:text-3xl font-bold text-emerald-900 mb-1 font-fun">Tebrikler, Doğru! 🌟</h3>
+            <p id="reflection-right-ans" class="text-sm sm:text-base font-bold text-amber-900 mb-3 font-fun">Doğru Cevap: Yaşama Hakkı</p>
+
+            <div class="bg-amber-50 p-3.5 rounded-2xl border border-amber-200 text-left mb-3 text-xs sm:text-sm text-amber-950 leading-relaxed">
+                <p id="reflection-explanation" class="font-semibold">
+                    Tüm çocukların sağlıklı, güvenli ve huzurlu bir ortamda yaşama hakkı bulunmaktadır.
+                </p>
+            </div>
+
+            <!-- Maarif Modeli Value Reflection -->
+            <div class="bg-indigo-50 p-3.5 rounded-2xl border-2 border-indigo-200 text-left mb-5">
+                <div class="flex items-center space-x-2 text-indigo-950 font-bold text-xs mb-1 font-fun">
+                    <i class="fa-solid fa-heart-pulse text-indigo-600 text-base"></i>
+                    <span>Düşün ve Paylaş (Gönül Bağı)</span>
+                </div>
+                <p id="reflection-prompt-text" class="text-xs sm:text-sm text-indigo-900 italic font-semibold leading-relaxed">
+                    "Çocukların güvenli bir çevrede yaşaması toplumun geleceğini nasıl etkiler?"
+                </p>
+            </div>
+
+            <button onclick="returnToMapAndMovePawn()" class="w-full bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-fun text-base sm:text-lg py-3.5 px-6 rounded-2xl shadow-lg border-b-4 border-teal-900 active:translate-y-0.5 transition flex items-center justify-center gap-2 font-bold">
+                <span>Haritaya Dön ve İlerle</span>
+                <i class="fa-solid fa-map-marked-alt"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- CERTIFICATE / GAME COMPLETION MODAL -->
+    <div id="certificate-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-lg z-50 flex items-center justify-center p-4 hidden">
+        <div class="glass-panel max-w-xl w-full rounded-3xl p-6 sm:p-8 text-center relative border-4 border-amber-400">
+            
+            <div class="w-20 h-20 mx-auto mb-2 text-6xl animate-bounce">
+                👑
+            </div>
+
+            <h2 class="text-2xl sm:text-3xl font-bold text-amber-900 mb-1 font-fun">Tebrikler Hak Şampiyonu!</h2>
+            <p class="text-xs sm:text-sm text-slate-700 mb-4 font-semibold">"Haklar Ormanı: Çocuk Hakları Yolculuğu" haritasındaki 15 durağın tamamını başarıyla tamamladınız!</p>
+
+            <div class="grid grid-cols-2 gap-3 my-4 bg-amber-50 p-4 rounded-2xl border border-amber-200">
+                <div class="text-center border-r border-amber-200">
+                    <div class="text-xs text-amber-800 font-bold uppercase font-fun">Kazanılan Yıldız</div>
+                    <div class="flex items-center justify-center space-x-1 mt-1">
+                        <i class="fa-solid fa-star text-yellow-400 text-2xl"></i>
+                        <span id="cert-stars" class="text-2xl font-bold text-amber-950 font-fun">15 / 15</span>
+                    </div>
+                </div>
+                <div class="text-center">
+                    <div class="text-xs text-amber-800 font-bold uppercase font-fun">Toplam Puan</div>
+                    <div class="text-2xl font-bold text-amber-950 mt-1 font-fun" id="cert-score">300 Puan</div>
+                </div>
+            </div>
+
+            <div class="bg-gradient-to-r from-emerald-100 via-teal-100 to-emerald-100 p-3.5 rounded-2xl border-2 border-emerald-300 my-4 text-emerald-950">
+                <i class="fa-solid fa-award text-3xl text-emerald-600 mb-1"></i>
+                <h4 class="font-bold text-sm sm:text-base font-fun">Kazanılan Unvan:</h4>
+                <p class="text-xs sm:text-sm font-extrabold text-emerald-900">"Bilinçli ve Haklarını Bilen Çocuk Elçisi"</p>
+            </div>
+
+            <button onclick="restartFullGame()" class="w-full bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-fun text-lg py-3.5 px-6 rounded-2xl shadow-lg border-b-4 border-amber-700 active:translate-y-1 transition flex items-center justify-center gap-2 font-bold">
+                <i class="fa-solid fa-arrow-rotate-left"></i>
+                <span>Yolculuğa Baştan Başla</span>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let audioCtx = null;
+        let isSoundEnabled = true;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playSound(type) {
+            if (!isSoundEnabled) return;
+            initAudio();
+            if (!audioCtx) return;
+
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            const now = audioCtx.currentTime;
+
+            if (type === 'step') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(320, now);
+                osc.frequency.exponentialRampToValueAtTime(160, now + 0.12);
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+                osc.start(now);
+                osc.stop(now + 0.12);
+            } else if (type === 'correct') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(523.25, now);
+                osc.frequency.exponentialRampToValueAtTime(659.25, now + 0.1);
+                osc.frequency.exponentialRampToValueAtTime(783.99, now + 0.2);
+                osc.frequency.exponentialRampToValueAtTime(1046.50, now + 0.3);
+                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
+                osc.start(now);
+                osc.stop(now + 0.45);
+            } else if (type === 'wrong') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(260, now);
+                osc.frequency.exponentialRampToValueAtTime(130, now + 0.25);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                osc.start(now);
+                osc.stop(now + 0.25);
+            }
+        }
+
+        function toggleSound() {
+            isSoundEnabled = !isSoundEnabled;
+            const icon = document.getElementById('sound-icon');
+            icon.className = isSoundEnabled ? 'fa-solid fa-volume-high text-xs sm:text-sm' : 'fa-solid fa-volume-xmark text-xs sm:text-sm';
+        }
+    </script>
+
+    <script>
+        const SVG_GRAPHICS = {
+            life: `<svg viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg"><path d="M0,90 Q100,50 200,90 L200,120 L0,120 Z" fill="#81c784"/><circle cx="100" cy="40" r="28" fill="#ffd54f"/><path d="M100,20 L100,8 M100,60 L100,72 M80,40 L68,40 M120,40 L132,40" stroke="#f57f17" stroke-width="4" stroke-linecap="round"/><circle cx="100" cy="80" r="14" fill="#ff8a65"/><circle cx="100" cy="72" r="8" fill="#ffe0b2"/><path d="M85,105 Q100,90 115,105" fill="none" stroke="#388e3c" stroke-width="5" stroke-linecap="round"/></svg>`,
+            family: `<svg viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg"><path d="M40,110 L40,65 L100,25 L160,65 L160,110 Z" fill="#ffb74d"/><path d="M30,68 L100,12 L170,68" stroke="#e65100" stroke-width="8" stroke-linecap="round" fill="none"/><rect x="85" y="75" width="30" height="35" fill="#8d6e63" rx="4"/><circle cx="100" cy="50" r="12" fill="#e1f5fe"/><path d="M100,40 L100,60 M90,50 L110,50" stroke="#0288d1" stroke-width="3"/></svg>`,
+            education: `<svg viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg"><rect x="20" y="20" width="160" height="85" rx="8" fill="#2e7d32" stroke="#8d6e63" stroke-width="8"/><rect x="30" y="30" width="140" height="65" rx="4" fill="none" stroke="#a5d6a7" stroke-width="2" stroke-dasharray="6,6"/><path d="M50,75 L80,50 L110,75 L140,45" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"/><circle cx="140" cy="45" r="5" fill="#ffeb3b"/></svg>`,
+            play: `<svg viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg"><path d="M10,110 Q100,80 190,110" stroke="#8d6e63" stroke-width="8" fill="none"/><path d="M50,105 L60,30 L140,30 L150,105" stroke="#37474f" stroke-width="6" fill="none"/><rect x="70" y="65" width="60" height="12" rx="6" fill="#ff7043"/><circle cx="100" cy="30" r="8" fill="#ffca28"/></svg>`,
+            health: `<svg viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg"><rect x="50" y="25" width="100" height="80" rx="12" fill="#ffffff" stroke="#e53935" stroke-width="6"/><path d="M100,45 L100,85 M80,65 L120,65" stroke="#e53935" stroke-width="12" stroke-linecap="round"/><circle cx="40" cy="35" r="10" fill="#81d4fa"/><path d="M40,45 Q40,75 70,75" fill="none" stroke="#0288d1" stroke-width="4"/></svg>`,
+            speech: `<svg viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg"><path d="M30,25 C30,25 170,25 170,65 C170,90 120,90 100,90 L70,110 L75,90 C40,90 30,75 30,25 Z" fill="#7e57c2"/><circle cx="75" cy="58" r="8" fill="#fff"/><circle cx="100" cy="58" r="8" fill="#fff"/><circle cx="125" cy="58" r="8" fill="#fff"/></svg>`,
+            identity: `<svg viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg"><rect x="40" y="20" width="120" height="80" rx="10" fill="#29b6f6" stroke="#0288d1" stroke-width="4"/><circle cx="75" cy="55" r="16" fill="#fff"/><path d="M60,88 C60,72 90,72 90,88" fill="#fff"/><rect x="105" y="42" width="40" height="6" rx="3" fill="#fff"/><rect x="105" y="56" width="30" height="6" rx="3" fill="#fff"/><rect x="105" y="70" width="35" height="6" rx="3" fill="#fff"/></svg>`,
+            water: `<svg viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg"><path d="M100,20 C100,20 145,70 145,85 C145,102 125,115 100,115 C75,115 55,102 55,85 C55,70 100,20 100,20 Z" fill="#29b6f6"/><path d="M85,80 C85,80 95,70 110,75" stroke="#fff" stroke-width="4" stroke-linecap="round" fill="none"/></svg>`,
+            protection: `<svg viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg"><path d="M100,15 L160,35 C160,80 120,110 100,118 C80,110 40,80 40,35 Z" fill="#66bb6a" stroke="#2e7d32" stroke-width="5"/><path d="M85,62 L98,75 L122,48" stroke="#fff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>`,
+            equality: `<svg viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg"><path d="M100,20 L100,100 M50,40 L150,40" stroke="#78909c" stroke-width="6" stroke-linecap="round"/><circle cx="50" cy="70" r="22" fill="#ff7043"/><circle cx="150" cy="70" r="22" fill="#42a5f5"/><rect x="85" y="95" width="30" height="15" fill="#455a64" rx="3"/></svg>`,
+            art: `<svg viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg"><path d="M40,60 C40,25 80,15 120,30 C160,45 170,80 130,105 C100,120 40,95 40,60 Z" fill="#ffe0b2" stroke="#fb8c00" stroke-width="4"/><circle cx="70" cy="45" r="10" fill="#e53935"/><circle cx="110" cy="40" r="10" fill="#1e88e5"/><circle cx="145" cy="60" r="10" fill="#43a047"/><circle cx="120" cy="88" r="10" fill="#8e24aa"/></svg>`,
+            special: `<svg viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="30" r="14" fill="#0288d1"/><path d="M100,48 L100,80 M100,60 L125,75 M100,80 L80,110 M100,80 L120,110" stroke="#0288d1" stroke-width="7" stroke-linecap="round"/><path d="M125,60 A25,25 0 1,1 95,100" fill="none" stroke="#ffb300" stroke-width="7" stroke-linecap="round"/></svg>`,
+            love: `<svg viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg"><path d="M100,100 C100,100 30,65 30,40 C30,22 45,10 62,10 C78,10 92,20 100,30 C108,20 122,10 138,10 C155,10 170,22 170,40 C170,65 100,100 100,100 Z" fill="#e91e63"/><path d="M50,30 C50,30 55,20 68,22" stroke="#fff" stroke-width="4" stroke-linecap="round" fill="none"/></svg>`,
+            privacy: `<svg viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg"><rect x="50" y="45" width="100" height="60" rx="10" fill="#ffd54f" stroke="#ff8f00" stroke-width="4"/><path d="M70,45 L70,30 C70,15 130,15 130,30 L130,45" fill="none" stroke="#546e7a" stroke-width="8" stroke-linecap="round"/><circle cx="100" cy="70" r="8" fill="#37474f"/></svg>`,
+            summit: `<svg viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg"><path d="M20,110 L100,25 L180,110 Z" fill="#546e7a"/><path d="M100,25 L125,58 L100,50 L75,58 Z" fill="#eceff1"/><path d="M100,25 L100,5 M100,5 L125,12 L100,18" stroke="#ffd54f" stroke-width="4" fill="#ffca28"/></svg>`
+        };
+
+        const AVATARS = [
+            { icon: "🧒", name: "Mert - Kâşif", role: "Doğa Gezgini" },
+            { icon: "👧", name: "Zeynep - Araştırmacı", role: "Bilgi Sevdalısı" },
+            { icon: "👦", name: "Efe - Sporcu", role: "Enerjik Oyuncu" },
+            { icon: "🎨", name: "Elif - Sanatçı", role: "Renk Ustası" },
+            { icon: "🌿", name: "Ali - Doğa Sever", role: "Çevre Koruyucusu" },
+            { icon: "🔬", name: "Selin - Bilim İnsanı", role: "Geleceğin Mudu" },
+            { icon: "🎵", name: "Yusuf - Müzisyen", role: "Melodi Dostu" },
+            { icon: "⚓", name: "Ayşe - Kaptan", role: "Yol Gösterici" }
+        ];
+
+        // Strict TDK-compliant station questions
+        const STATIONS = [
+            {
+                id: 1,
+                name: "1. Yaşama Vadisi",
+                right: "Yaşama Hakkı",
+                svg: SVG_GRAPHICS.life,
+                pos: { x: 8, y: 80 },
+                title: "Ata'nın Sağlıklı Yaşamı",
+                text: "Ata, dünyaya geldiği andan itibaren ailesinin sevgisiyle büyümekte; temiz, güvenli ve sağlıklı bir ortamda yaşamını sürdürmektedir.",
+                correct: "Yaşama Hakkı",
+                options: ["Yaşama Hakkı", "Seçilme Hakkı", "Çalışma Hakkı", "Ticaret Yapma Hakkı"],
+                explanation: "Tüm çocukların doğuştan gelen en temel hakkı, sağlıklı ve güvenli bir ortamda yaşama hakkıdır.",
+                reflection: "Çocukların güvenli bir çevrede yaşaması toplumun geleceğini nasıl etkiler?",
+                hint: "Dünyaya gelmek ve sağlıklı büyümek en temel insan hakkımızdır."
+            },
+            {
+                id: 2,
+                name: "2. Aile Yuvası",
+                right: "Barınma ve Aile Hakkı",
+                svg: SVG_GRAPHICS.family,
+                pos: { x: 22, y: 72 },
+                title: "Sıcacık Yuva",
+                text: "Elif, soğuk kış günlerinde sıcak evinde ailesiyle vakit geçirmekte ve korunaklı odasında güvenle uyumaktadır.",
+                correct: "Barınma ve Ailede Yaşama Hakkı",
+                options: ["Barınma ve Ailede Yaşama Hakkı", "Eğitim Hakkı", "Seyahat Etme Hakkı", "Seçme Hakkı"],
+                explanation: "Her çocuk, korunaklı bir yuvada ve ailesinin şefkati altında yaşama hakkına sahiptir.",
+                reflection: "Ailemizle vakit geçirmek kendimizi neden daha güvende hissettirir?",
+                hint: "Sıcak bir evde yaşamak ve aile sevgisi görmek bu hakla ilgilidir."
+            },
+            {
+                id: 3,
+                name: "3. Bilgi Mektebi",
+                right: "Eğitim Hakkı",
+                svg: SVG_GRAPHICS.education,
+                pos: { x: 18, y: 48 },
+                title: "Zeynep'in Okul Heyecanı",
+                text: "Zeynep her sabah çantasını hazırlayıp heyecanla okula gitmekte; öğretmeninden ve kitaplardan yeni bilgiler öğrenmektedir.",
+                correct: "Eğitim Görme Hakkı",
+                options: ["Eğitim Görme Hakkı", "Sağlık Hakkı", "Dinlenme Hakkı", "Alışveriş Hakkı"],
+                explanation: "Okula gitmek, okuma yazma öğrenmek ve kendimizi geliştirmek eğitim hakkımızın bir parçasıdır.",
+                reflection: "Yeni şeyler öğrenmek hayallerimize ulaşmamıza nasıl yardımcı olur?",
+                hint: "Ders görmek, okula gitmek ve bilgi edinmek hangi hakkımızdır?"
+            },
+            {
+                id: 4,
+                name: "4. Neşeli Park",
+                right: "Oyun ve Dinlenme Hakkı",
+                svg: SVG_GRAPHICS.play,
+                pos: { x: 35, y: 38 },
+                title: "Teneffüste Oyun Zamanı",
+                text: "Ders sona erdiğinde Arda ve arkadaşları okul bahçesinde neşeyle saklambaç oynayıp dinlenmektedir.",
+                correct: "Oyun Oynama ve Dinlenme Hakkı",
+                options: ["Oyun Oynama ve Dinlenme Hakkı", "Barınma Hakkı", "Seyahat Hakkı", "Çalışma Hakkı"],
+                explanation: "Oyun oynamak ve dinlenmek çocukların hem en doğal hakkı hem de en önemli gelişme ihtiyacıdır.",
+                reflection: "Arkadaşlarınızla oyun oynarken paylaşmayı öğrenmek size ne kazandırır?",
+                hint: "Parkta oynamak ve teneffüste dinlenmek bu hak kapsamında değerlendirilir."
+            },
+            {
+                id: 5,
+                name: "5. Şifa Bahçesi",
+                right: "Sağlık Hakkı",
+                svg: SVG_GRAPHICS.health,
+                pos: { x: 50, y: 55 },
+                title: "Doktor Muayenesi",
+                text: "Karnı ağrıyan Ayşe'yi babası sağlık merkezine götürdü. Doktor Ayşe'yi muayene edip iyileşmesi için ilaç yazdı.",
+                correct: "Sağlık Hizmetlerinden Yararlanma Hakkı",
+                options: ["Sağlık Hizmetlerinden Yararlanma Hakkı", "Eğitim Hakkı", "Katılım Hakkı", "İfade Özgürlüğü"],
+                explanation: "Hastalandığımızda doktora gitmek, tedavi olmak ve aşılanmak sağlık hakkımızdır.",
+                reflection: "Sağlığımızı korumak için günlük hayatımızda hangi alışkanlıklara dikkat etmeliyiz?",
+                hint: "Doktor, hastane ve tedavi denince akla gelen temel haktır."
+            },
+            {
+                id: 6,
+                name: "6. Fikir Meydanı",
+                right: "Katılım ve İfade Özgürlüğü",
+                svg: SVG_GRAPHICS.speech,
+                pos: { x: 38, y: 78 },
+                title: "Sınıf Temsilcisi Seçimi",
+                text: "Kerem, sınıf temsilcisi seçiminde kürsüye çıkarak arkadaşlarına yapmayı planladığı faydalı çalışmaları özgürce anlattı.",
+                correct: "Düşüncelerini Özgürce İfade Etme Hakkı",
+                options: ["Düşüncelerini Özgürce İfade Etme Hakkı", "Barınma Hakkı", "Sağlık Hakkı", "Beslenme Hakkı"],
+                explanation: "Çocuklar kendilerini ilgilendiren konularda kendi fikirlerini söyleme hakkına sahiptir.",
+                reflection: "Düşüncelerimizi nezaketle ifade etmek arkadaşlıklarımızı nasıl güçlendirir?",
+                hint: "Kendi görüşlerini söylemek ve fikrini belirtmek bu haktır."
+            },
+            {
+                id: 7,
+                name: "7. Kimlik Pınarı",
+                right: "İsim ve Vatandaşlık Hakkı",
+                svg: SVG_GRAPHICS.identity,
+                pos: { x: 55, y: 82 },
+                title: "Deniz'in Kimlik Kartı",
+                text: "Deniz doğduğunda ailesi Nüfus Müdürlüğüne başvurarak ona resmî T.C. Kimlik Kartı çıkardı.",
+                correct: "İsim ve Vatandaşlık Hakkı",
+                options: ["İsim ve Vatandaşlık Hakkı", "Eğitim Hakkı", "Oyun Hakkı", "Spor Hakkı"],
+                explanation: "Her çocuğun doğduğu andan itibaren bir isme ve vatandaşlığa sahip olma hakkı bulunmaktadır.",
+                reflection: "Bir isme ve kimliğe sahip olmak toplumsal yaşamda bize hangi kolaylıkları sağlar?",
+                hint: "Adımızın olması ve kimlik kartı taşımamız bu hakla doğrudan ilgilidir."
+            },
+            {
+                id: 8,
+                name: "8. Temiz Su Çeşmesi",
+                right: "Beslenme ve Temiz Çevre",
+                svg: SVG_GRAPHICS.water,
+                pos: { x: 68, y: 65 },
+                title: "Sağlıklı Beslenme",
+                text: "Canan, her gün taze sebze ve meyve tüketmekte; temiz içme suyuna ve güvenli gıdalara kolayca ulaşabilmektedir.",
+                correct: "Dengeli Beslenme ve Temiz Su Hakkı",
+                options: ["Dengeli Beslenme ve Temiz Su Hakkı", "Seçilme Hakkı", "Çalışma Hakkı", "Mülkiyet Hakkı"],
+                explanation: "Çocukların bedensel gelişimi için temiz su ve besleyici gıdalara ulaşması en doğal haktır.",
+                reflection: "Su kaynaklarımızı israf etmeden kullanmak çevremiz için neden hayati önem taşır?",
+                hint: "Yemek yemek ve temiz su içmek yaşamsal beslenme ihtiyacımızdır."
+            },
+            {
+                id: 9,
+                name: "9. Koruma Kalesi",
+                right: "Korunma Hakkı",
+                svg: SVG_GRAPHICS.protection,
+                pos: { x: 62, y: 38 },
+                title: "Güvenli Gelecek",
+                text: "Kanunlarımıza göre çocuklar okul çağında ağır işlerde çalıştırılamaz; onların yeri okulları ve oyun alanlarıdır.",
+                correct: "Zararlı İşlerden ve Şiddetten Korunma Hakkı",
+                options: ["Zararlı İşlerden ve Şiddetten Korunma Hakkı", "Çalışma Hakkı", "Alışveriş Hakkı", "Ticaret Hakkı"],
+                explanation: "Çocuklar her türlü tehlikeli işten, şiddetten ve kötü muameleden korunma hakkına sahiptir.",
+                reflection: "Çocukların ağır işlerde çalıştırılmak yerine okula gitmesi topluma nasıl değer katar?",
+                hint: "Çocukların tehlikelerden uzak tutulması ve korunması bu haktır."
+            },
+            {
+                id: 10,
+                name: "10. Eşitlik Bahçesi",
+                right: "Ayrımcılık Görmeme Hakkı",
+                svg: SVG_GRAPHICS.equality,
+                pos: { x: 78, y: 48 },
+                title: "Önyargısız Dostluk",
+                text: "Sınıfa yeni nakil olan arkadaşlarına tüm öğrenciler sevgiyle kucak açtı ve onu oyunlarına eşitçe dâhil etti.",
+                correct: "Eşitlik ve Ayrımcılık Görmeme Hakkı",
+                options: ["Eşitlik ve Ayrımcılık Görmeme Hakkı", "Yarışma Hakkı", "Çalışma Hakkı", "Ayrılma Hakkı"],
+                explanation: "Dili, dini, rengi veya engel durumu ne olursa olsun bütün çocuklar eşittir.",
+                reflection: "Farklılıklara saygı duymak ve herkesi eşit görmek sınıfımızda nasıl bir ortam oluşturur?",
+                hint: "Herkesin eşit haklara sahip olması ve ayrım yapılmaması bu ilkeden kaynaklanır."
+            },
+            {
+                id: 11,
+                name: "11. Sanat Atölyesi",
+                right: "Sanat ve Kültür Hakkı",
+                svg: SVG_GRAPHICS.art,
+                pos: { x: 75, y: 78 },
+                title: "Rengârenk Tiyatro",
+                text: "3. sınıf öğrencileri öğretmenleriyle birlikte çocuk tiyatrosuna giderek eğlenceli bir oyunu heyecanla izledi.",
+                correct: "Kültürel ve Sanatsal Etkinliklere Katılma Hakkı",
+                options: ["Kültürel ve Sanatsal Etkinliklere Katılma Hakkı", "Sağlık Hakkı", "Barınma Hakkı", "Sınav Hakkı"],
+                explanation: "Çocukların resim, müzik, tiyatro ve müze gezileri gibi sanatsal faaliyetlere katılma hakkı vardır.",
+                reflection: "Sanat ve müzikle ilgilenmek hayal gücümüzü nasıl zenginleştirir?",
+                hint: "Tiyatro izlemek, resim yapmak ve müzik dinlemek sanatsal faaliyetlerdir."
+            },
+            {
+                id: 12,
+                name: "12. Özel Gereksinim Durağı",
+                right: "Özel Gereksinimli Çocuk Hakları",
+                svg: SVG_GRAPHICS.special,
+                pos: { x: 88, y: 72 },
+                title: "Engelsiz Yaşam",
+                text: "Tekerlekli sandalye kullanan Umut için okul binası girişine rahatça ilerleyebileceği engelli rampası yapıldı.",
+                correct: "Özel Gereksinimli Çocukların Hakları",
+                options: ["Özel Gereksinimli Çocukların Hakları", "Ayrılma Hakkı", "Çalışma Hakkı", "Yarışma Hakkı"],
+                explanation: "Özel gereksinimli çocukların toplumsal yaşama eşit katılımı için gerekli kolaylıklar sağlanmalıdır.",
+                reflection: "Çevremizdeki engelleri kaldırmak için toplumsal olarak neler yapabiliriz?",
+                hint: "Engelli bireylerin hayatını kolaylaştırmak bu hakkın gereğidir."
+            },
+            {
+                id: 13,
+                name: "13. Sevgi Ormanı",
+                right: "Duygusal Güvenlik",
+                svg: SVG_GRAPHICS.love,
+                pos: { x: 88, y: 42 },
+                title: "Anlayış Dolu Destek",
+                text: "Öğretmeni ve arkadaşları, hata yaptığında Efe'yi cesaretlendirerek ona anlayışla destek oldu.",
+                correct: "Duygusal Güvenlik ve Sevgi Görme Hakkı",
+                options: ["Duygusal Güvenlik ve Sevgi Görme Hakkı", "Çalışma Hakkı", "Sınav Hakkı", "Seyahat Hakkı"],
+                explanation: "Çocukların sevgi dolu, destekleyici ve psikolojik olarak güvende hissettikleri ortamlarda büyüme hakkı vardır.",
+                reflection: "Çevremizdeki insanlara nezaketle yaklaşmak dünyayı nasıl bir yer hâline getirir?",
+                hint: "Sevgi görmek, cesaretlendirilmek ve duygusal olarak desteklenmek bu hakla açıklanır."
+            },
+            {
+                id: 14,
+                name: "14. Gizlilik Köşesi",
+                right: "Özel Hayatın Gizliliği",
+                svg: SVG_GRAPHICS.privacy,
+                pos: { x: 85, y: 18 },
+                title: "Gizli Günlük",
+                text: "Selin'in tuttuğu kişisel günlüğü ve özel mektupları izinsiz olarak kimse tarafından okunamaz ve paylaşılamaz.",
+                correct: "Özel Hayatın Gizliliği Hakkı",
+                options: ["Özel Hayatın Gizliliği Hakkı", "Eğitim Hakkı", "Sağlık Hakkı", "Oyun Hakkı"],
+                explanation: "Çocukların da yetişkinler gibi özel eşyalarının, günlüklerinin ve konuşmalarının gizliliğine saygı duyulmalıdır.",
+                reflection: "Başkalarının özel eşyalarına izinsiz dokunmamak neden önemlidir?",
+                hint: "Günlük veya kişisel eşyaların izinsiz karıştırılmaması bu haktır."
+            },
+            {
+                id: 15,
+                name: "15. Haklar Zirvesi",
+                right: "Haklar Bilinci",
+                svg: SVG_GRAPHICS.summit,
+                pos: { x: 50, y: 18 },
+                title: "Haklarımızı Öğreniyoruz",
+                text: "20 Kasım Dünya Çocuk Hakları Günü'nde öğrenciler sınıflarında çocuk haklarını anlatan renkli panolar hazırladı.",
+                correct: "Haklarını Öğrenme ve Koruma Hakkı",
+                options: ["Haklarını Öğrenme ve Koruma Hakkı", "Çalışma Hakkı", "Seyahat Hakkı", "Mülkiyet Hakkı"],
+                explanation: "Çocukların kendi haklarını öğrenmesi, koruması ve arkadaşlarına anlatması en bilinçli kazanımdır.",
+                reflection: "Haklarımızı ve sorumluluklarımızı öğrenmek bilinçli bir yurttaş olmamıza nasıl katkı sağlar?",
+                hint: "Çocuk haklarını öğrenmek ve savunmak bu bilinçle ilgilidir."
+            }
+        ];
+
+        let selectedAvatarIndex = 0;
+        let currentStationIndex = 0;
+        let stars = 0;
+        let score = 0;
+        let failedAttemptsOnCurrentStation = 0;
+        let isPawnMoving = false;
+    </script>
+
+    <script>
+        const canvas = document.getElementById('map-canvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            const wrapper = document.getElementById('map-wrapper');
+            canvas.width = wrapper.clientWidth;
+            canvas.height = wrapper.clientHeight;
+            drawMap();
+            updatePawnPosition(false);
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        function getCanvasCoords(pos) {
+            return {
+                x: (pos.x / 100) * canvas.width,
+                y: (pos.y / 100) * canvas.height
+            };
+        }
+
+        function drawMap() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw curved path connecting map nodes
+            ctx.beginPath();
+            ctx.lineWidth = 12;
+            ctx.strokeStyle = '#ffb703';
+            ctx.lineCap = 'round';
+            ctx.setLineDash([12, 10]);
+
+            for (let i = 0; i < STATIONS.length - 1; i++) {
+                const p1 = getCanvasCoords(STATIONS[i].pos);
+                const p2 = getCanvasCoords(STATIONS[i + 1].pos);
+                
+                if (i === 0) {
+                    ctx.moveTo(p1.x, p1.y);
+                }
+                
+                const midX = (p1.x + p2.x) / 2;
+                const midY = (p1.y + p2.y) / 2 + (i % 2 === 0 ? -30 : 30);
+                ctx.quadraticCurveTo(midX, midY, p2.x, p2.y);
+            }
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Background trees
+            const treePositions = [
+                {x: 12, y: 35}, {x: 28, y: 15}, {x: 45, y: 35}, {x: 65, y: 15}, 
+                {x: 82, y: 32}, {x: 25, y: 88}, {x: 45, y: 92}, {x: 70, y: 92}
+            ];
+            treePositions.forEach(t => {
+                const pt = getCanvasCoords(t);
+                ctx.font = '24px serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('🌲', pt.x, pt.y);
+            });
+
+            // Draw Station Nodes
+            STATIONS.forEach((station, idx) => {
+                const p = getCanvasCoords(station.pos);
+
+                const isCompleted = idx < currentStationIndex;
+                const isCurrent = idx === currentStationIndex;
+
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, isCurrent ? 26 : 20, 0, Math.PI * 2);
+                ctx.fillStyle = isCompleted ? '#2a9d8f' : (isCurrent ? '#ffb703' : '#1e293b');
+                ctx.shadowColor = 'rgba(0,0,0,0.5)';
+                ctx.shadowBlur = 10;
+                ctx.fill();
+                ctx.lineWidth = 4;
+                ctx.strokeStyle = isCurrent ? '#ffffff' : (isCompleted ? '#a8ded0' : '#475569');
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+
+                ctx.font = isCurrent ? 'bold 16px Fredoka' : '13px Fredoka';
+                ctx.fillStyle = '#ffffff';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                if (isCompleted) {
+                    ctx.fillText('✓', p.x, p.y);
+                } else {
+                    ctx.fillText(station.id, p.x, p.y);
+                }
+
+                ctx.font = 'bold 12px Nunito';
+                ctx.fillStyle = isCurrent ? '#ffd166' : '#f8fafc';
+                ctx.fillText(station.name, p.x, p.y + 34);
+            });
+        }
+
+        function updatePawnPosition(playSoundEffect = true) {
+            const pawn = document.getElementById('avatar-pawn');
+            const targetStation = STATIONS[currentStationIndex];
+            
+            pawn.style.left = `${targetStation.pos.x}%`;
+            pawn.style.top = `${targetStation.pos.y}%`;
+
+            if (playSoundEffect) {
+                playSound('step');
+            }
+
+            // Update Start Station Button text
+            document.getElementById('start-station-btn-text').innerText = `${targetStation.name}: İstasyona Giriş Yap ve Başla`;
+
+            document.getElementById('info-hud-title').innerText = targetStation.name;
+            document.getElementById('info-hud-desc').innerText = `Kazanılacak Hak: ${targetStation.right}. Aşağıdaki sarı butona tıklayarak soruları açabilirsiniz.`;
+
+            drawMap();
+        }
+
+        // Click station directly on map to trigger question if current
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+
+            const currentStationPos = getCanvasCoords(STATIONS[currentStationIndex].pos);
+            const dist = Math.hypot(clickX - currentStationPos.x, clickY - currentStationPos.y);
+
+            if (dist < 45) {
+                openQuestionModal();
+            }
+        });
+    </script>
+
+    <script>
+        function updateHUD() {
+            document.getElementById('hud-station-text').innerText = `Durak: ${currentStationIndex + 1} / 15`;
+            document.getElementById('hud-stars').innerText = stars;
+            document.getElementById('hud-score').innerText = `${score} P`;
+        }
+
+        function openCharacterSelectorModal() {
+            playSound('step');
+            renderCharacterCards();
+            document.getElementById('character-modal').classList.remove('hidden');
+        }
+
+        function closeCharacterSelectorModal() {
+            playSound('step');
+            document.getElementById('character-modal').classList.add('hidden');
+        }
+
+        function renderCharacterCards() {
+            const grid = document.getElementById('character-grid');
+            grid.innerHTML = '';
+
+            AVATARS.forEach((char, idx) => {
+                const card = document.createElement('div');
+                const isSelected = idx === selectedAvatarIndex;
+
+                card.className = `p-3 rounded-2xl border-2 cursor-pointer transition transform hover:-translate-y-1 ${
+                    isSelected 
+                    ? 'bg-amber-100 border-amber-500 shadow-lg scale-105 ring-2 ring-amber-400' 
+                    : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                }`;
+
+                card.onclick = () => selectCharacterWithCooldown(idx);
+
+                card.innerHTML = `
+                    <div class="w-12 h-12 mx-auto rounded-full bg-white shadow flex items-center justify-center text-2xl mb-2 border border-slate-200">
+                        ${char.icon}
+                    </div>
+                    <div class="font-bold text-xs text-slate-900 font-fun leading-tight">${char.name}</div>
+                    <div class="text-[10px] text-emerald-700 font-semibold mt-1">${char.role}</div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function selectCharacterWithCooldown(index) {
+            selectedAvatarIndex = index;
+            const chosen = AVATARS[selectedAvatarIndex];
+            
+            playSound('step');
+
+            // Show Cooldown Transition Overlay
+            const overlay = document.getElementById('char-transition-overlay');
+            const iconEl = document.getElementById('transition-avatar-icon');
+            const nameEl = document.getElementById('transition-avatar-name');
+            const barEl = document.getElementById('transition-bar');
+
+            iconEl.innerText = chosen.icon;
+            nameEl.innerText = chosen.name;
+            barEl.style.width = '0%';
+
+            overlay.classList.remove('hidden');
+
+            // Animate progress bar over 1.5 seconds delay
+            setTimeout(() => {
+                barEl.style.width = '100%';
+            }, 50);
+
+            setTimeout(() => {
+                // Update avatar UI
+                document.getElementById('avatar-emoji').innerText = chosen.icon;
+                document.getElementById('current-avatar-icon').innerText = chosen.icon;
+                document.getElementById('current-avatar-title').innerText = chosen.name;
+
+                overlay.classList.add('hidden');
+                closeCharacterSelectorModal();
+                playSound('correct');
+            }, 1600);
+        }
+
+        function openQuestionModal() {
+            playSound('step');
+            const station = STATIONS[currentStationIndex];
+
+            // Hide hint banner
+            document.getElementById('modal-hint-box').classList.add('hidden');
+
+            document.getElementById('modal-station-tag').innerHTML = `<i class="fa-solid fa-location-dot"></i> ${station.name}`;
+            document.getElementById('modal-q-num').innerText = station.id;
+            document.getElementById('modal-svg-wrapper').innerHTML = station.svg;
+            document.getElementById('modal-scenario-title').innerText = station.title;
+            document.getElementById('modal-scenario-text').innerText = `"${station.text}"`;
+
+            renderOptions();
+
+            document.getElementById('question-modal').classList.remove('hidden');
+        }
+
+        function renderOptions() {
+            const station = STATIONS[currentStationIndex];
+            const optionsContainer = document.getElementById('modal-options-grid');
+            optionsContainer.innerHTML = '';
+
+            // Ensure stable option shuffling per station
+            if (!station.shuffledOptions) {
+                station.shuffledOptions = [...station.options].sort(() => Math.random() - 0.5);
+            }
+
+            const optionLabels = ['A', 'B', 'C', 'D'];
+            
+            const badgeStyles = [
+                'bg-emerald-600 border-emerald-800 text-white',
+                'bg-sky-600 border-sky-800 text-white',
+                'bg-amber-600 border-amber-800 text-white',
+                'bg-purple-600 border-purple-800 text-white'
+            ];
+
+            const btnGradients = [
+                'from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 border-teal-800 text-white',
+                'from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 border-blue-800 text-white',
+                'from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 border-orange-800 text-white',
+                'from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 border-indigo-800 text-white'
+            ];
+
+            station.shuffledOptions.forEach((optText, i) => {
+                const btn = document.createElement('button');
+                btn.id = `opt-btn-${i}`;
+                btn.className = `opt-card bg-gradient-to-r ${btnGradients[i % btnGradients.length]} font-fun text-xs sm:text-sm px-3.5 py-3 rounded-2xl text-left flex items-center space-x-3 w-full font-bold shadow-md cursor-pointer border-b-4`;
+                btn.onclick = () => handleAnswerSelect(optText, btn);
+                
+                btn.innerHTML = `
+                    <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl ${badgeStyles[i % badgeStyles.length]} border-2 flex items-center justify-center text-sm font-extrabold shadow-inner shrink-0">
+                        ${optionLabels[i]}
+                    </div>
+                    <span class="leading-relaxed text-slate-50 font-semibold flex-grow">${optText}</span>
+                    <i class="fa-solid fa-chevron-right text-xs opacity-60"></i>
+                `;
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        function handleAnswerSelect(selectedOption, clickedBtn) {
+            const station = STATIONS[currentStationIndex];
+            const isCorrect = (selectedOption === station.correct);
+
+            if (isCorrect) {
+                // DOĞRU CEVAP:
+                playSound('correct');
+                
+                // Add bonus stars/score if answered on first try
+                if (failedAttemptsOnCurrentStation === 0) {
+                    stars += 1;
+                    score += 20;
+                } else {
+                    score += 10;
+                }
+
+                confetti({ particleCount: 90, spread: 80, origin: { y: 0.6 } });
+
+                document.getElementById('question-modal').classList.add('hidden');
+                
+                // Show Maarif Modeli Reflection Modal
+                document.getElementById('reflection-right-ans').innerText = `Doğru Cevap: ${station.correct}`;
+                document.getElementById('reflection-explanation').innerText = station.explanation;
+                document.getElementById('reflection-prompt-text').innerText = `"${station.reflection}"`;
+                document.getElementById('reflection-modal').classList.remove('hidden');
+
+            } else {
+                // YANLIŞ CEVAP: KESİNLİKLE İLERLEME OLMAZ
+                playSound('wrong');
+                failedAttemptsOnCurrentStation++;
+
+                // Visual shake feedback on clicked wrong option
+                clickedBtn.classList.remove('from-emerald-500', 'from-sky-500', 'from-amber-500', 'from-purple-500');
+                clickedBtn.classList.add('from-rose-600', 'to-red-700', 'border-rose-900', 'shake-animation');
+                
+                // Display hint
+                const hintBox = document.getElementById('modal-hint-box');
+                const hintText = document.getElementById('modal-hint-text');
+                hintText.innerText = `Yanlış Şık! İpucu: ${station.hint}`;
+                hintBox.classList.remove('hidden');
+
+                const modalCard = document.getElementById('modal-card');
+                modalCard.classList.add('shake-animation');
+                setTimeout(() => {
+                    modalCard.classList.remove('shake-animation');
+                }, 600);
+            }
+
+            updateHUD();
+        }
+
+        function returnToMapAndMovePawn() {
+            playSound('step');
+            document.getElementById('reflection-modal').classList.add('hidden');
+
+            failedAttemptsOnCurrentStation = 0;
+
+            if (currentStationIndex < STATIONS.length - 1) {
+                currentStationIndex++;
+                updatePawnPosition(true);
+                updateHUD();
+                // Karakter haritada ilgili durağa yürür ve BEKLER.
+                // Otomatik açılmaz; öğrenci "İstasyona Giriş Yap ve Başla" butonuna basarak girer.
+            } else {
+                showCertificateModal();
+            }
+        }
+
+        function showCertificateModal() {
+            playSound('correct');
+            confetti({ particleCount: 200, spread: 100, origin: { y: 0.5 } });
+
+            document.getElementById('cert-stars').innerText = `${stars} / 15`;
+            document.getElementById('cert-score').innerText = `${score} Puan`;
+            document.getElementById('certificate-modal').classList.remove('hidden');
+        }
+
+        function restartFullGame() {
+            playSound('step');
+            document.getElementById('certificate-modal').classList.add('hidden');
+            currentStationIndex = 0;
+            stars = 0;
+            score = 0;
+            failedAttemptsOnCurrentStation = 0;
+            
+            STATIONS.forEach(s => delete s.shuffledOptions);
+
+            updateHUD();
+            updatePawnPosition(false);
+        }
+
+        window.onload = function() {
+            resizeCanvas();
+            updateHUD();
+        };
+    </script>
+</body>
+</html>

@@ -1,16 +1,13 @@
 # app.py
-# Akıl Haritası — İlkokul Süreç & Beceri Kokpiti (Nihai Tam Sürüm - libsql-client Turso Entegreli)
+# Akıl Haritası — İlkokul Süreç & Beceri Kokpiti (Nihai Tam Sürüm - Turso & Bulut Oyun Kayıt Entegreli)
 
 import streamlit as st
 import sys
 import os
 import re
 import importlib.util
-import socket
-import threading
 import random
-from http.server import HTTPServer, BaseHTTPRequestHandler
-from urllib.parse import parse_qs, urlparse, unquote
+from urllib.parse import unquote
 
 # Tam TYMM Müfredatını, Veli/Telafi Modülünü ve Çift Kulvarlı Bilişsel Pekiştirme Motorunu İçeri Aktar
 from tymm_mufredat import mufredat_detayli
@@ -318,87 +315,65 @@ def veri_getir(ogretmen=None, sinif=None, ogrenci=None, gun_sayisi=None):
         
     return df
 
-# ----------------- ARKA PLAN KAYIT SOKETİ -----------------
-TINY_GIF = b'GIF89a\x01\x00\x01\x00\x80\x00\x00\xff\xff\xff\x00\x00\x00!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;'
-
-class CarkKayitHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        parsed = urlparse(self.path)
-        if parsed.path == "/cark_kaydet":
-            p = parse_qs(parsed.query)
-            try:
-                ogr = unquote(p.get("ogr", [""])[0]).strip()
-                durum = unquote(p.get("durum", ["Gelişmekte Olan"])[0]).strip()
-                gorev = unquote(p.get("gorev", [""])[0]).strip()
-                model = unquote(p.get("model", [""])[0]).strip()
-                yanilgi = unquote(p.get("yanilgi", [""])[0]).strip()
-                oneri = unquote(p.get("oneri", [""])[0]).strip()
-                guclu = unquote(p.get("guclu", [""])[0]).strip()
-                ogretmen = unquote(p.get("ogretmen", [""])[0]).strip()
-                sube = unquote(p.get("sube", [""])[0]).strip()
-
-                if ogr and ogretmen and sube:
-                    ders_adi = "Matematik"
-                    if "Besle" in model or "Beslenme" in model:
-                        ders_adi = "Hayat Bilgisi"
-                        kazanim_adi = "HB.3.2.1. Kişisel sağlığını koruma bilinci geliştirebilme ve bilinçli tüketici davranışı sergileyebilme"
-                    elif "Haklar Ormanı" in model or "Hak Avcısı" in model or "Çocuk Hakları" in model:
-                        if "4." in sube:
-                            ders_adi = "Sosyal Bilgiler"
-                            kazanim_adi = "SB.4.4.1. Çocuk haklarını, sorumluluklarını ve aktif vatandaşlık bilincini uygulayabilme"
-                        else:
-                            ders_adi = "Hayat Bilgisi"
-                            kazanim_adi = "HB.3.1.2. Okul kültürüne katkıda bulunabilme ve demokratik katılım gösterebilme"
-                    elif "Gizemli Kutu" in model or "Eş Anlam" in model:
-                        ders_adi = "Türkçe"
-                        kazanim_adi = "T.O.3.2. Söz varlığını geliştirebilme ve kelimeler arası anlam ilişkilerini çözümleyebilme"
-                    elif "Büyük Harf" in model or "TDK" in model:
-                        ders_adi = "Türkçe"
-                        kazanim_adi = "T.Y.3.1. Yazım ve noktalama kurallarına uyarak okunaklı metinler yazabilme"
-                    elif "Saat" in model or "Para" in model:
-                        ders_adi = "Matematik"
-                        kazanim_adi = "MAT.3.4.2. Kütle, sıvı ölçme, zaman ve paralarımızla ilgili problemleri çözebilme"
-                    else:
-                        ders_adi = "Matematik"
-                        kazanim_adi = "MAT.3.1.4. Birim kesirleri modelleyebilme ve kesirlerin pay-payda anlamını açıklayabilme"
-
-                    veri_kaydet(
-                        ogretmen,
-                        sube,
-                        ogr,
-                        ders_adi,
-                        kazanim_adi,
-                        durum,
-                        f"Akıllı tahtada canlı {gorev} görevini {model} üzerinde uyguladı.",
-                        guclu,
-                        yanilgi,
-                        oneri
-                    )
-            except Exception:
-                pass
-        self.send_response(200)
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Cache-Control", "no-store, no-cache, must-revalidate")
-        self.send_header("Content-Type", "image/gif")
-        self.end_headers()
-        self.wfile.write(TINY_GIF)
-
-    def log_message(self, format, *args):
-        return
-
-def port_acik_mi(port=8765):
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        return s.connect_ex(('127.0.0.1', port)) == 0
-
-def start_cark_server():
-    if not port_acik_mi(8765):
+# ----------------- BULUT UYUMLU OYUN KAYIT YAKALAYICISI -----------------
+def bulut_oyun_kayit_yakala():
+    qp = st.query_params
+    if "cark_kaydet" in qp or "ogr" in qp:
         try:
-            server = HTTPServer(("127.0.0.1", 8765), CarkKayitHandler)
-            server.serve_forever()
+            ogr = unquote(str(qp.get("ogr", ""))).strip()
+            durum = unquote(str(qp.get("durum", "Gelişmekte Olan"))).strip()
+            gorev = unquote(str(qp.get("gorev", ""))).strip()
+            model = unquote(str(qp.get("model", ""))).strip()
+            yanilgi = unquote(str(qp.get("yanilgi", ""))).strip()
+            oneri = unquote(str(qp.get("oneri", ""))).strip()
+            guclu = unquote(str(qp.get("guclu", ""))).strip()
+            ogretmen = unquote(str(qp.get("ogretmen", st.session_state.get("aktif_ogretmen", "")))).strip()
+            sube = unquote(str(qp.get("sube", st.session_state.get("aktif_sube", "")))).strip()
+
+            if ogr and ogretmen and sube:
+                ders_adi = "Matematik"
+                if "Besle" in model or "Beslenme" in model:
+                    ders_adi = "Hayat Bilgisi"
+                    kazanim_adi = "HB.3.2.1. Kişisel sağlığını koruma bilinci geliştirebilme ve bilinçli tüketici davranışı sergileyebilme"
+                elif "Haklar Ormanı" in model or "Hak Avcısı" in model or "Çocuk Hakları" in model:
+                    if "4." in sube:
+                        ders_adi = "Sosyal Bilgiler"
+                        kazanim_adi = "SB.4.4.1. Çocuk haklarını, sorumluluklarını ve aktif vatandaşlık bilincini uygulayabilme"
+                    else:
+                        ders_adi = "Hayat Bilgisi"
+                        kazanim_adi = "HB.3.1.2. Okul kültürüne katkıda bulunabilme ve demokratik katılım gösterebilme"
+                elif "Gizemli Kutu" in model or "Eş Anlam" in model:
+                    ders_adi = "Türkçe"
+                    kazanim_adi = "T.O.3.2. Söz varlığını geliştirebilme ve kelimeler arası anlam ilişkilerini çözümleyebilme"
+                elif "Büyük Harf" in model or "TDK" in model:
+                    ders_adi = "Türkçe"
+                    kazanim_adi = "T.Y.3.1. Yazım ve noktalama kurallarına uyarak okunaklı metinler yazabilme"
+                elif "Saat" in model or "Para" in model:
+                    ders_adi = "Matematik"
+                    kazanim_adi = "MAT.3.4.2. Kütle, sıvı ölçme, zaman ve paralarımızla ilgili problemleri çözebilme"
+                else:
+                    ders_adi = "Matematik"
+                    kazanim_adi = "MAT.3.1.4. Birim kesirleri modelleyebilme ve kesirlerin pay-payda anlamını açıklayabilme"
+
+                veri_kaydet(
+                    ogretmen,
+                    sube,
+                    ogr,
+                    ders_adi,
+                    kazanim_adi,
+                    durum,
+                    f"Akıllı tahtada canlı {gorev} görevini {model} üzerinde uyguladı.",
+                    guclu,
+                    yanilgi,
+                    oneri
+                )
+                st.toast(f"✅ {ogr} adlı öğrencinin oyun sonucu kaydedildi!", icon="🎯")
         except Exception:
             pass
+        finally:
+            st.query_params.clear()
 
-threading.Thread(target=start_cark_server, daemon=True).start()
+bulut_oyun_kayit_yakala()
 
 # ----------------- ÖĞRENCİ YÖNETİMİ -----------------
 SEVIMLI_MASKOTLAR = [

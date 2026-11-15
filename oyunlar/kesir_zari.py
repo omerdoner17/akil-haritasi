@@ -6,8 +6,6 @@ from urllib.parse import quote
 def kesir_zari_oyunu_render(ogretmen_adi, sube_adi, ogrenciler):
     ogrenci_listesi_js = ogrenciler if ogrenciler else [{"ad": "Örnek Öğrenci", "maskot": "🦁"}]
     ogrenciler_json = json.dumps(ogrenci_listesi_js, ensure_ascii=False)
-    ogretmen_enc = quote(str(ogretmen_adi))
-    sube_enc = quote(str(sube_adi))
 
     html_code = f"""
 <!DOCTYPE html>
@@ -96,7 +94,7 @@ function autoFit(){{
 window.addEventListener('resize',autoFit);
 function toggleFS(){{if(!document.fullscreenElement)document.documentElement.requestFullscreen().catch(()=>{{}});else document.exitFullscreen();}}
 
-var OGRENCILER = {ogrenciler_json}, OGRETMEN_ENC = "{ogretmen_enc}", SUBE_ENC = "{sube_enc}";
+var OGRENCILER = {ogrenciler_json};
 var sel = document.getElementById("ogrSelect");
 OGRENCILER.forEach(function(o) {{ var opt = document.createElement("option"); opt.value = o.ad; opt.textContent = (o.maskot || "🦁") + " " + o.ad; sel.appendChild(opt); }});
 document.getElementById("btnRandom").onclick = function() {{
@@ -131,8 +129,35 @@ function rollDice() {{
 document.getElementById("btnSaveResult").onclick = function() {{
     var ogrAd = sel.value, durum = document.getElementById("rubrikSel").value, kesirStr = currentFrac.num + "/" + currentFrac.den + " (" + currentFrac.name + ")";
     var guclu = kesirStr + " kesrini pay ve payda anlamına uygun olarak modelledi.", yanilgi = durum.indexOf("Başlangıç") !== -1 ? "Pay ve payda yerlerini karıştırarak eş parça sayısını yanlış belirledi." : "Belirgin bir kavram yanılgısı tespit edilmedi.";
-    new Image().src = "http://127.0.0.1:8765/cark_kaydet?ogr=" + encodeURIComponent(ogrAd) + "&durum=" + encodeURIComponent(durum) + "&gorev=" + encodeURIComponent("Kesir Zarı Modelleme: " + kesirStr) + "&model=" + encodeURIComponent("3D Kesir Zarı") + "&guclu=" + encodeURIComponent(guclu) + "&yanilgi=" + encodeURIComponent(yanilgi) + "&oneri=" + encodeURIComponent("Kesir şeritleri ve katlama kâğıtlarıyla birim kesir sayma etkinliği önerilir.") + "&ogretmen=" + OGRETMEN_ENC + "&sube=" + SUBE_ENC;
-    var toast = document.getElementById("saveToast"); toast.style.display = "inline"; setTimeout(function() {{ toast.style.display = "none"; }}, 3000);
+
+    var params = new URLSearchParams({{
+        cark_kaydet: "1",
+        ogr: ogrAd,
+        durum: durum,
+        gorev: "Kesir Zarı Modelleme: " + kesirStr,
+        model: "3D Kesir Zarı",
+        guclu: guclu,
+        yanilgi: yanilgi,
+        oneri: "Kesir şeritleri ve katlama kâğıtlarıyla birim kesir sayma etkinliği önerilir.",
+        ogretmen: "{ogretmen_adi}",
+        sube: "{sube_adi}",
+        t: Date.now().toString()
+    }});
+    try {{
+        var targetWin = window.parent || window;
+        var baseUrl = targetWin.location.href.split("?")[0];
+        targetWin.history.replaceState(null, "", baseUrl + "?" + params.toString());
+        fetch(baseUrl + "?" + params.toString(), {{ mode: "no-cors", cache: "no-store" }}).catch(function() {{}});
+    }} catch (e) {{}}
+
+    var toast = document.getElementById("saveToast"); toast.style.display = "inline";
+    setTimeout(function() {{
+        toast.style.display = "none";
+        try {{
+            var targetWin = window.parent || window;
+            targetWin.location.reload();
+        }} catch (e) {{}}
+    }}, 900);
 }};
 setTimeout(autoFit, 100);
 </script>

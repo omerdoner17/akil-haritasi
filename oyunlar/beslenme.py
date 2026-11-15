@@ -6,8 +6,6 @@ from urllib.parse import quote
 def beslenme_oyunu_render(ogretmen_adi, sube_adi, ogrenciler):
     ogrenci_listesi_js = ogrenciler if ogrenciler else [{"ad": "Örnek Öğrenci", "maskot": "🦁"}]
     ogrenciler_json = json.dumps(ogrenci_listesi_js, ensure_ascii=False)
-    ogretmen_enc = quote(str(ogretmen_adi))
-    sube_enc = quote(str(sube_adi))
 
     html_code = f"""
 <!DOCTYPE html>
@@ -127,8 +125,6 @@ window.addEventListener('resize',autoFit);
 function toggleFS(){{if(!document.fullscreenElement)document.documentElement.requestFullscreen().catch(()=>{{}});else document.exitFullscreen();}}
 
 var OGRENCILER = {ogrenciler_json};
-var OGRETMEN_ENC = "{ogretmen_enc}";
-var SUBE_ENC = "{sube_enc}";
 var secilenZararliBesinler = [];
 var sel = document.getElementById("ogrSelect");
 OGRENCILER.forEach(function(o) {{ var opt = document.createElement("option"); opt.value = o.ad; opt.textContent = (o.maskot || "🦁") + " " + o.ad; sel.appendChild(opt); }});
@@ -143,10 +139,35 @@ document.getElementById("btnSaveResult").onclick = function() {{
     if (cg >= 3 && cb === 0) {{ durum = "İleri Düzey"; guclu = "Tüm seçimlerinde dengeli ve sağlıklı besinleri tercih etti (" + cg + " sağlıklı seçim)."; }}
     else if (cg > cb && cg >= 2) {{ durum = "Yetkin Düzey"; guclu = "Sağlıklı besinleri çoğunlukla doğru seçti (" + cg + " sağlıklı, " + cb + " sağlıksız)."; }}
     else if (cb >= cg && (cg + cb) > 0) {{ durum = "Başlangıç Düzeyi"; yanilgi = "Şekerli ve paketli gıdaları (" + (secilenZararliBesinler.join(", ") || "abur cubur") + ") tercih etme eğilimi görüldü."; }}
-    var url = "http://127.0.0.1:8765/cark_kaydet?ogr=" + encodeURIComponent(ogrAd) + "&durum=" + encodeURIComponent(durum) + "&gorev=" + encodeURIComponent("Sağlıklı Beslenme (" + cg + " Doğru, " + cb + " Yanlış)") + "&model=" + encodeURIComponent("Aliyi Besle Beslenme Oyunu") + "&guclu=" + encodeURIComponent(guclu) + "&yanilgi=" + encodeURIComponent(yanilgi) + "&oneri=" + encodeURIComponent(oneri) + "&ogretmen=" + OGRETMEN_ENC + "&sube=" + SUBE_ENC;
-    new Image().src = url;
+    
+    var params = new URLSearchParams({{
+        cark_kaydet: "1",
+        ogr: ogrAd,
+        durum: durum,
+        gorev: "Sağlıklı Beslenme (" + cg + " Doğru, " + cb + " Yanlış)",
+        model: "Aliyi Besle Beslenme Oyunu",
+        guclu: guclu,
+        yanilgi: yanilgi,
+        oneri: oneri,
+        ogretmen: "{ogretmen_adi}",
+        sube: "{sube_adi}",
+        t: Date.now().toString()
+    }});
+    try {{
+        var targetWin = window.parent || window;
+        var baseUrl = targetWin.location.href.split("?")[0];
+        targetWin.history.replaceState(null, "", baseUrl + "?" + params.toString());
+        fetch(baseUrl + "?" + params.toString(), {{ mode: "no-cors", cache: "no-store" }}).catch(function() {{}});
+    }} catch (e) {{}}
+
     var toast = document.getElementById("saveToast"); toast.style.display = "inline";
-    setTimeout(function() {{ toast.style.display = "none"; }}, 3000);
+    setTimeout(function() {{
+        toast.style.display = "none";
+        try {{
+            var targetWin = window.parent || window;
+            targetWin.location.reload();
+        }} catch (e) {{}}
+    }}, 900);
 }};
 var NS="http://www.w3.org/2000/svg",$=function(i){{return document.getElementById(i)}},rnd=function(a,b){{return a+Math.random()*(b-a)}},cl=function(v,a,b){{return Math.max(a,Math.min(b,v))}};
 var FD=[["🍎","Elma",1,"Elma vitamin ve lif içerir."],["🥦","Brokoli",1,"Sebzeler vücudumuzu güçlendirir."],["🥕","Havuç",1,"Havuç gözlerimiz için faydalıdır."],["🥛","Süt",1,"Süt kemiklerimizi güçlendirir."],["🐟","Balık",1,"Balık kaslarımızı geliştirir."],["🍌","Muz",1,"Muz sağlıklı enerji verir."],["🥗","Salata",1,"Taze sebzelerle dolu."],["💧","Su",1,"Su içmek çok önemlidir."],

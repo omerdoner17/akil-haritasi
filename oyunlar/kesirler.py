@@ -42,12 +42,17 @@ def kesirler_oyunu_render(aktif_ogretmen, aktif_sube, ogrenciler_listesi):
                 position: relative; width: 480px; height: 480px;
                 display: flex; align-items: center; justify-content: center;
             }
+            #wheelSpinner {
+                width: 460px; height: 460px;
+                border-radius: 50%;
+                will-change: transform;
+                transform: translate3d(0, 0, 0);
+            }
             canvas {
                 border-radius: 50%; cursor: pointer;
                 border: 6px solid #ffffff;
-                box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12);
-                will-change: transform;
-                transform: translateZ(0);
+                box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+                display: block;
             }
             .center-btn {
                 position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
@@ -55,7 +60,7 @@ def kesirler_oyunu_render(aktif_ogretmen, aktif_sube, ogrenciler_listesi):
                 background: radial-gradient(circle, #ef4444 30%, #dc2626 70%, #991b1b 100%);
                 border: 5px solid #ffffff; box-shadow: 0 6px 18px rgba(220,38,38,0.4);
                 display: flex; flex-direction: column; align-items: center; justify-content: center;
-                cursor: pointer; z-index: 20; transition: transform 0.12s;
+                cursor: pointer; z-index: 20; transition: transform 0.1s;
             }
             .center-btn:active { transform: translate(-50%, -50%) scale(0.94); }
             .pointer {
@@ -94,12 +99,12 @@ def kesirler_oyunu_render(aktif_ogretmen, aktif_sube, ogrenciler_listesi):
             .fraction-slice {
                 flex: 1; border-right: 2px dashed #94a3b8; cursor: pointer;
                 display: flex; flex-direction: column; align-items: center; justify-content: center;
-                font-size: 18px; font-weight: 800; color: #334155; transition: background 0.12s;
+                font-size: 18px; font-weight: 800; color: #334155; transition: background 0.1s;
             }
             .fraction-slice:last-child { border-right: none; }
             .fraction-slice.selected { background: #0284c7 !important; color: #ffffff; }
             svg.pizza-svg { width: 220px; height: 220px; cursor: pointer; margin: 6px 0; }
-            path.pizza-slice { fill: #f8fafc; stroke: #0f172a; stroke-width: 3; transition: fill 0.12s; }
+            path.pizza-slice { fill: #f8fafc; stroke: #0f172a; stroke-width: 3; transition: fill 0.1s; }
             path.pizza-slice.selected { fill: #10b981 !important; }
             .btn-row {
                 display: flex; gap: 12px; align-items: center; margin-top: 8px;
@@ -120,7 +125,7 @@ def kesirler_oyunu_render(aktif_ogretmen, aktif_sube, ogrenciler_listesi):
                 25% { transform: translateX(-8px); }
                 75% { transform: translateX(8px); }
             }
-            .shake-anim { animation: shake 0.3s ease-in-out; }
+            .shake-anim { animation: shake 0.25s ease-in-out; }
         </style>
     </head>
     <body>
@@ -130,7 +135,9 @@ def kesirler_oyunu_render(aktif_ogretmen, aktif_sube, ogrenciler_listesi):
                 <button class="reset-btn" id="turuSifirlaBtn">🔄 Turu Sıfırla</button>
             </div>
             <div class="wheel-container">
-                <canvas id="wheelCanvas" width="460" height="460"></canvas>
+                <div id="wheelSpinner">
+                    <canvas id="wheelCanvas" width="460" height="460"></canvas>
+                </div>
                 <div class="pointer"></div>
                 <div class="center-btn" id="ortaCevirBtn">
                     <span style="font-size:26px;">🎯</span>
@@ -169,6 +176,7 @@ def kesirler_oyunu_render(aktif_ogretmen, aktif_sube, ogrenciler_listesi):
             let globalSube = __SUBE__;
             let remainingIndices = allLabels.map((_, idx) => idx);
 
+            const spinner = document.getElementById("wheelSpinner");
             const canvas = document.getElementById("wheelCanvas");
             const ctx = canvas.getContext("2d");
             const palette = ["#38bdf8", "#34d399", "#fb923c", "#a78bfa", "#f472b6", "#22d3ee", "#facc15", "#2dd4bf"];
@@ -218,9 +226,9 @@ def kesirler_oyunu_render(aktif_ogretmen, aktif_sube, ogrenciler_listesi):
                     remainingIndices = allLabels.map((_, idx) => idx);
                     document.getElementById("kalanSayac").innerText = "Kalan Öğrenci: " + remainingIndices.length + " / " + allLabels.length;
                 }
-                canvas.style.transition = "none";
-                currentAngleDeg = currentAngleDeg % 360;
-                canvas.style.transform = `rotate(${currentAngleDeg}deg)`;
+                spinner.style.transition = "none";
+                currentAngleDeg = 0;
+                spinner.style.transform = "rotate3d(0, 0, 1, 0deg)";
                 drawWheelStatic();
             }
 
@@ -242,11 +250,12 @@ def kesirler_oyunu_render(aktif_ogretmen, aktif_sube, ogrenciler_listesi):
                 let delta = desiredEndDeg - currentMod;
                 if (delta < 0) delta += 360;
 
-                const totalSpinDeg = currentAngleDeg + (5 * 360) + delta;
+                const totalSpinDeg = currentAngleDeg + (4 * 360) + delta;
                 currentAngleDeg = totalSpinDeg;
 
-                canvas.style.transition = "transform 1.4s cubic-bezier(0.15, 0.85, 0.25, 1)";
-                canvas.style.transform = `rotate(${totalSpinDeg}deg)`;
+                // GPU Hızlandırmalı Hızlı Dönüş (0.75 sn)
+                spinner.style.transition = "transform 0.75s cubic-bezier(0.12, 0.85, 0.25, 1)";
+                spinner.style.transform = `rotate3d(0, 0, 1, ${totalSpinDeg}deg)`;
 
                 setTimeout(() => {
                     isSpinning = false;
@@ -254,12 +263,13 @@ def kesirler_oyunu_render(aktif_ogretmen, aktif_sube, ogrenciler_listesi):
                     activeLabel = allLabels[winnerRealIdx];
                     activePureName = allPureNames[winnerRealIdx];
 
+                    // Öğrenciyi listeden çıkar, tur bitene kadar bir daha gelmez
                     remainingIndices.splice(chosenPos, 1);
                     document.getElementById("kalanSayac").innerText = "Kalan Öğrenci: " + remainingIndices.length + " / " + allLabels.length;
 
-                    confetti({ particleCount: 90, spread: 70 });
-                    setTimeout(() => showQuestionModal(), 550);
-                }, 1450);
+                    confetti({ particleCount: 75, spread: 65 });
+                    setTimeout(() => showQuestionModal(), 350);
+                }, 780);
             }
 
             document.getElementById("ortaCevirBtn").onclick = spinNow;
@@ -268,8 +278,8 @@ def kesirler_oyunu_render(aktif_ogretmen, aktif_sube, ogrenciler_listesi):
             document.getElementById("turuSifirlaBtn").onclick = () => {
                 remainingIndices = allLabels.map((_, idx) => idx);
                 currentAngleDeg = 0;
-                canvas.style.transition = "none";
-                canvas.style.transform = "rotate(0deg)";
+                spinner.style.transition = "none";
+                spinner.style.transform = "rotate3d(0, 0, 1, 0deg)";
                 document.getElementById("kalanSayac").innerText = "Kalan Öğrenci: " + remainingIndices.length + " / " + allLabels.length;
                 drawWheelStatic();
             };
@@ -399,18 +409,14 @@ def kesirler_oyunu_render(aktif_ogretmen, aktif_sube, ogrenciler_listesi):
 
                     veritabaninaOtomatikKaydet(activePureName, durum, gorevStr, activeModel, yanilgi, oneri, guclu);
 
-                    confetti({ particleCount: 110, spread: 75 });
+                    confetti({ particleCount: 95, spread: 70 });
                     msgBox.style.color = "#059669";
                     msgBox.innerText = "🎉 HARİKA! " + activePureName + " doğru modelledi ve karnesine işlendi!";
 
+                    // Sayfayı YENİLEMEDEN (kalan öğrencileri koruyarak) doğrudan çarka dön
                     setTimeout(() => {
-                        try {
-                            const targetWin = window.parent || window;
-                            targetWin.location.reload();
-                        } catch (e) {
-                            returnToWheelScreen();
-                        }
-                    }, 1100);
+                        returnToWheelScreen();
+                    }, 950);
 
                 } else {
                     mistakeCount++;

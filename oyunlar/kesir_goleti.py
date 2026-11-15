@@ -6,8 +6,6 @@ from urllib.parse import quote
 def kesir_goleti_oyunu_render(ogretmen_adi, sube_adi, ogrenciler):
     ogrenci_listesi_js = ogrenciler if ogrenciler else [{"ad": "Örnek Öğrenci", "maskot": "🦁"}]
     ogrenciler_json = json.dumps(ogrenci_listesi_js, ensure_ascii=False)
-    ogretmen_enc = quote(str(ogretmen_adi))
-    sube_enc = quote(str(sube_adi))
 
     html_code = f"""
 <!DOCTYPE html>
@@ -121,7 +119,7 @@ function autoFit(){{
 window.addEventListener('resize',autoFit);
 function toggleFS(){{if(!document.fullscreenElement)document.documentElement.requestFullscreen().catch(()=>{{}});else document.exitFullscreen();}}
 
-var OGRENCILER = {ogrenciler_json}, OGRETMEN_ENC = "{ogretmen_enc}", SUBE_ENC = "{sube_enc}";
+var OGRENCILER = {ogrenciler_json};
 var dogruAtlayis = 0, yanlisAtlayis = 0;
 var sel = document.getElementById("ogrSelect");
 OGRENCILER.forEach(function(o) {{ var opt = document.createElement("option"); opt.value = o.ad; opt.textContent = (o.maskot || "🦁") + " " + o.ad; sel.appendChild(opt); }});
@@ -134,8 +132,35 @@ document.getElementById("btnSaveResult").onclick = function() {{
     if (dogruAtlayis >= 4 && yanlisAtlayis === 0) {{ durum = "İleri Düzey"; guclu = "Bütün, yarım, çeyrek ve basit kesir modellerini hatasız eşleştirdi (" + dogruAtlayis + " doğru)."; }}
     else if (dogruAtlayis > yanlisAtlayis && dogruAtlayis >= 2) {{ durum = "Yetkin Düzey"; guclu = "Kesir modellerini çoğunlukla doğru okudu (" + dogruAtlayis + " doğru, " + yanlisAtlayis + " yanlış)."; }}
     else if (yanlisAtlayis >= dogruAtlayis) {{ durum = "Başlangıç Düzeyi"; yanilgi = "Eş parça sayısını (payda) veya boyalı parça sayısını (pay) sayarken karıştırma gözlendi."; }}
-    new Image().src = "http://127.0.0.1:8765/cark_kaydet?ogr=" + encodeURIComponent(ogrAd) + "&durum=" + encodeURIComponent(durum) + "&gorev=" + encodeURIComponent("Kesir Göleti (" + dogruAtlayis + " Doğru, " + yanlisAtlayis + " Yanlış)") + "&model=" + encodeURIComponent("Süper Kesir Göleti") + "&guclu=" + encodeURIComponent(guclu) + "&yanilgi=" + encodeURIComponent(yanilgi) + "&oneri=" + encodeURIComponent("Kesir kartlarıyla pay ve payda eşleştirme alıştırması yapılabilir.") + "&ogretmen=" + OGRETMEN_ENC + "&sube=" + SUBE_ENC;
-    var toast = document.getElementById("saveToast"); toast.style.display = "inline"; setTimeout(function() {{ toast.style.display = "none"; }}, 3000);
+
+    var params = new URLSearchParams({{
+        cark_kaydet: "1",
+        ogr: ogrAd,
+        durum: durum,
+        gorev: "Kesir Göleti (" + dogruAtlayis + " Doğru, " + yanlisAtlayis + " Yanlış)",
+        model: "Süper Kesir Göleti",
+        guclu: guclu,
+        yanilgi: yanilgi,
+        oneri: "Kesir kartlarıyla pay ve payda eşleştirme alıştırması yapılabilir.",
+        ogretmen: "{ogretmen_adi}",
+        sube: "{sube_adi}",
+        t: Date.now().toString()
+    }});
+    try {{
+        var targetWin = window.parent || window;
+        var baseUrl = targetWin.location.href.split("?")[0];
+        targetWin.history.replaceState(null, "", baseUrl + "?" + params.toString());
+        fetch(baseUrl + "?" + params.toString(), {{ mode: "no-cors", cache: "no-store" }}).catch(function() {{}});
+    }} catch (e) {{}}
+
+    var toast = document.getElementById("saveToast"); toast.style.display = "inline";
+    setTimeout(function() {{
+        toast.style.display = "none";
+        try {{
+            var targetWin = window.parent || window;
+            targetWin.location.reload();
+        }} catch (e) {{}}
+    }}, 900);
 }};
 const characters = {{
   frog: {{ title: "🐸 Zıpzıp ile Kesir Göleti", svg: `<svg viewBox="0 0 100 100" width="100%" height="100%"><ellipse cx="50" cy="60" rx="38" ry="28" fill="#22C55E"/><ellipse cx="50" cy="65" rx="25" ry="18" fill="#FEF08A"/><ellipse cx="50" cy="38" rx="34" ry="25" fill="#22C55E"/><circle cx="32" cy="20" r="14" fill="#22C55E"/><circle cx="68" cy="20" r="14" fill="#22C55E"/><circle cx="32" cy="20" r="10" fill="#FFF"/><circle cx="68" cy="20" r="10" fill="#FFF"/><circle cx="33" cy="20" r="5" fill="#0F172A"/><circle cx="67" cy="20" r="5" fill="#0F172A"/><path d="M 34 44 Q 50 58 66 44" fill="none" stroke="#0F172A" stroke-width="3.5" stroke-linecap="round"/></svg>` }},

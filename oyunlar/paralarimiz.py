@@ -98,18 +98,28 @@ def paralarimiz_oyunu_render(aktif_ogretmen, aktif_sube, ogrenciler_listesi):
                 setTimeout(function() {{
                     let ogr = allPureNames[curIdx];
                     let hedefPara = (typeof currentTarget !== 'undefined' && currentTarget) ? currentTarget.name : "Para";
-                    let url = "http://127.0.0.1:8765/cark_kaydet?ogr=" + encodeURIComponent(ogr) +
-                              "&durum=" + encodeURIComponent("Yetkin Düzey") +
-                              "&gorev=" + encodeURIComponent(hedefPara + " Değer Denkliği") +
-                              "&model=" + encodeURIComponent("Para Kasası Manipülatifi") +
-                              "&yanilgi=" + encodeURIComponent("Yok (Hedef paranın değer denkliğini başarıyla modelledi)") +
-                              "&oneri=" + encodeURIComponent("Kuruş ve Lira dönüşümlerinde somut modellerle problem çözme becerisi zenginleştirilebilir.") +
-                              "&guclu=" + encodeURIComponent(hedefPara + " değerini oluşturan paraları başarıyla ayrıştırdı.") +
-                              "&ogretmen=" + encodeURIComponent("{aktif_ogretmen}") +
-                              "&sube=" + encodeURIComponent("{aktif_sube}") +
-                              "&t=" + Date.now();
-                    let ping = new Image();
-                    ping.src = url;
+                    let params = new URLSearchParams({{
+                        cark_kaydet: "1",
+                        ogr: ogr,
+                        durum: "Yetkin Düzey",
+                        gorev: hedefPara + " Değer Denkliği",
+                        model: "Para Kasası Manipülatifi",
+                        yanilgi: "Yok (Hedef paranın değer denkliğini başarıyla modelledi)",
+                        oneri: "Kuruş ve Lira dönüşümlerinde somut modellerle problem çözme becerisi zenginleştirilebilir.",
+                        guclu: hedefPara + " değerini oluşturan paraları başarıyla ayrıştırdı.",
+                        ogretmen: "{aktif_ogretmen}",
+                        sube: "{aktif_sube}",
+                        t: Date.now().toString()
+                    }});
+                    try {{
+                        let targetWin = window.parent || window;
+                        let baseUrl = targetWin.location.href.split("?")[0];
+                        targetWin.history.replaceState(null, "", baseUrl + "?" + params.toString());
+                        fetch(baseUrl + "?" + params.toString(), {{ mode: "no-cors", cache: "no-store" }}).catch(function() {{}});
+                        setTimeout(function() {{
+                            try {{ targetWin.location.reload(); }} catch (e) {{}}
+                        }}, 900);
+                    }} catch (e) {{}}
                 }}, 300);
             }});
         }}

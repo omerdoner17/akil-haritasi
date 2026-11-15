@@ -331,6 +331,9 @@ def bulut_oyun_kayit_yakala():
             sube = unquote(str(qp.get("sube", st.session_state.get("aktif_sube", "")))).strip()
 
             if ogr and ogretmen and sube:
+                st.session_state.aktif_ogretmen = ogretmen
+                st.session_state.aktif_sube = sube
+
                 ders_adi = "Matematik"
                 if "Besle" in model or "Beslenme" in model:
                     ders_adi = "Hayat Bilgisi"

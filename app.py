@@ -1,7 +1,8 @@
 # app.py
-# Akıl Haritası — İlkokul Süreç & Beceri Kokpiti (Nihai Tam Sürüm - Turso & Bulut Oyun Kayıt Entegreli)
+# Akıl Haritası — İlkokul Süreç & Beceri Kokpiti (Nihai Tam Sürüm - Turso Failover & Sayfa Yenilemesiz Oyun Kayıt Motoru)
 
 import streamlit as st
+import streamlit.components.v1 as components
 import sys
 import os
 import re
@@ -17,6 +18,87 @@ from gunluk_bilissel_pekistirme import (
     sabah_isinma_bilmecesi_render,
     dongu_ustalik_guncelle
 )
+
+# ----------------- SAYFA YENİLEMESİZ OYUN KAYIT KALKANI (TÜM OYUNLAR İÇİN) -----------------
+_ORJINAL_HTML_RENDER = components.html
+
+def _sayfa_yenilemesiz_oyun_kapsulleyici(html_body, **kwargs):
+    if isinstance(html_body, str) and ("cark_kaydet" in html_body or "btnSave" in html_body or "btnCheckMission" in html_body):
+        kalkan_script = """
+        <script>
+        (function() {
+            function gonderBulutaYenilemeden(rawUrl) {
+                try {
+                    const u = new URL(rawUrl, window.location.origin);
+                    const p = new URLSearchParams(u.search);
+                    p.set("cark_kaydet", "1");
+                    p.set("t", Date.now().toString());
+                    const targetWin = window.parent || window;
+                    const baseUrl = targetWin.location.href.split("?")[0];
+                    const fullTargetUrl = baseUrl + "?" + p.toString();
+
+                    // Sayfayı YENİLEMEDEN arka planda gizli istek ile Streamlit sunucusuna veriyi ilet
+                    fetch(fullTargetUrl, { mode: "no-cors", cache: "no-store", credentials: "include" }).catch(() => {});
+                    
+                    let gizliFrame = document.getElementById("akilHaritasiGizliKayit");
+                    if (!gizliFrame) {
+                        gizliFrame = document.createElement("iframe");
+                        gizliFrame.id = "akilHaritasiGizliKayit";
+                        gizliFrame.style.display = "none";
+                        document.body.appendChild(gizliFrame);
+                    }
+                    gizliFrame.src = fullTargetUrl;
+                } catch (e) {}
+            }
+
+            // 1. Oyunların parent sayfayı zorla yenilemesini (reload) engelle
+            try {
+                if (window.parent && window.parent !== window) {
+                    const origReload = window.parent.location.reload.bind(window.parent.location);
+                    Object.defineProperty(window.parent.location, "reload", {
+                        configurable: true,
+                        value: function() {
+                            // Oyun içi kayıt sonrası sayfa sıfırlanmasını durdur
+                            console.log("Akıl Haritası: Oyun durumu korundu, sayfa yenilemesi engellendi.");
+                        }
+                    });
+                }
+            } catch (e) {}
+
+            // 2. Fetch çağrılarını yakala ve yenilemesiz ilet
+            const origFetch = window.fetch;
+            window.fetch = function(input, init) {
+                const urlStr = typeof input === "string" ? input : (input && input.url ? input.url : "");
+                if (urlStr.includes("cark_kaydet")) {
+                    gonderBulutaYenilemeden(urlStr);
+                    return Promise.resolve(new Response("ok"));
+                }
+                return origFetch.apply(this, arguments);
+            };
+
+            // 3. Image beacon (127.0.0.1:8765) çağrılarını yakala ve yenilemesiz ilet
+            const origImgSrc = Object.getOwnPropertyDescriptor(Image.prototype, "src");
+            if (origImgSrc && origImgSrc.set) {
+                Object.defineProperty(Image.prototype, "src", {
+                    set: function(val) {
+                        if (typeof val === "string" && val.includes("cark_kaydet")) {
+                            gonderBulutaYenilemeden(val);
+                            return;
+                        }
+                        origImgSrc.set.call(this, val);
+                    }
+                });
+            }
+        })();
+        </script>
+        """
+        if "<head>" in html_body:
+            html_body = html_body.replace("<head>", "<head>" + kalkan_script, 1)
+        else:
+            html_body = kalkan_script + html_body
+    return _ORJINAL_HTML_RENDER(html_body, **kwargs)
+
+components.html = _sayfa_yenilemesiz_oyun_kapsulleyici
 
 # ----------------- PROJE VE OYUN MODÜLLERİ DİNAMİK YÜKLEYİCİ -----------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -83,12 +165,10 @@ from reportlab.pdfbase.ttfonts import TTFont
 # ----------------- TÜRKÇE FONT YÜKLEME -----------------
 def turkce_font_yukle():
     adaylar = [
-        # Linux (Streamlit Cloud) - packages.txt ile kurulur
         ("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
          "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"),
         ("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
          "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"),
-        # Windows (yerel bilgisayar)
         ("C:\\Windows\\Fonts\\arial.ttf", "C:\\Windows\\Fonts\\arialbd.ttf"),
         ("C:\\Windows\\Fonts\\tahoma.ttf", "C:\\Windows\\Fonts\\tahomabd.ttf"),
         ("C:\\Windows\\Fonts\\calibri.ttf", "C:\\Windows\\Fonts\\calibrib.ttf"),
@@ -142,7 +222,7 @@ for s_no in [1, 2, 3, 4]:
     for s_harf in ["A", "B", "C", "D", "E"]:
         STANDART_20_SUBE.append(f"{s_no}. Sınıf - {s_harf} Şubesi")
 
-# ----------------- TURSO BULUT (libsql-client) & YEREL SQLİTE MOTORU -----------------
+# ----------------- TURSO BULUT (OTOMATİK YEDEKLİ FAILOVER) & YEREL SQLİTE MOTORU -----------------
 DB_PATH = os.path.join(BASE_DIR, "sinif_surec_takip.db")
 
 try:
@@ -154,7 +234,6 @@ except Exception:
     TURSO_TOKEN = ""
 
 class TursoHttpCursor:
-    """libsql_client sorgularını standart sqlite3 cursor yapısına uyarlar."""
     def __init__(self, client):
         self._client = client
         self._rows = []
@@ -177,7 +256,6 @@ class TursoHttpCursor:
         return self._rows[0] if self._rows else None
 
 class TursoHttpConnection:
-    """libsql_client bağlantısını sqlite3 connection arayüzüyle sunar."""
     def __init__(self, url, auth_token):
         self._client = libsql_client.create_client_sync(url=url, auth_token=auth_token)
 
@@ -199,10 +277,13 @@ class TursoHttpConnection:
 
 def get_db_connection():
     if libsql_client is not None and TURSO_HTTP_URL and TURSO_TOKEN and "BURAYA_" not in TURSO_TOKEN:
-        try:
-            return TursoHttpConnection(TURSO_HTTP_URL, TURSO_TOKEN)
-        except Exception:
-            pass
+        if not st.session_state.get("turso_devre_disi", False):
+            try:
+                turso_conn = TursoHttpConnection(TURSO_HTTP_URL, TURSO_TOKEN)
+                turso_conn.execute("SELECT 1")
+                return turso_conn
+            except Exception:
+                st.session_state["turso_devre_disi"] = True
     conn = sqlite3.connect(DB_PATH, timeout=30)
     conn.execute("PRAGMA journal_mode = WAL")
     return conn
@@ -251,10 +332,10 @@ SON_KAYIT_ZAMANI = {}
 
 def veri_kaydet(ogretmen, sinif, ogrenci, ders, kazanim, rubrik, dusunme, guclu, yanilgi, oneri):
     global SON_KAYIT_ZAMANI
-    anahtar = f"{ogretmen}_{sinif}_{ogrenci}_{kazanim}"
+    anahtar = f"{ogretmen}_{sinif}_{ogrenci}_{kazanim}_{rubrik}_{yanilgi}"
     simdi = time.time()
     
-    if anahtar in SON_KAYIT_ZAMANI and (simdi - SON_KAYIT_ZAMANI[anahtar]) < 1.5:
+    if anahtar in SON_KAYIT_ZAMANI and (simdi - SON_KAYIT_ZAMANI[anahtar]) < 2.0:
         return
 
     SON_KAYIT_ZAMANI[anahtar] = simdi
@@ -370,11 +451,13 @@ def bulut_oyun_kayit_yakala():
                     yanilgi,
                     oneri
                 )
-                st.toast(f"✅ {ogr} adlı öğrencinin oyun sonucu kaydedildi!", icon="🎯")
         except Exception:
             pass
         finally:
-            st.query_params.clear()
+            try:
+                st.query_params.clear()
+            except Exception:
+                pass
 
 bulut_oyun_kayit_yakala()
 
@@ -1275,11 +1358,9 @@ elif sayfa == "📇 Bireysel Gelişim Kartı":
         if df_tum.empty:
             st.info(f"ℹ️ **{secilen}** için henüz sistemde kayıtlı bir süreç verisi bulunmuyor.")
         else:
-            # Öğrencinin kayıtlı maskotunu bul
             kayitli_list = sinif_ogrencilerini_getir(aktif_ogretmen, aktif_sube)
             ogr_maskot = next((x["maskot"] for x in kayitli_list if x["ad"].lower() == secilen.lower()), "🦁")
 
-            # 1. Çift Kulvarlı (Destekleme & Zenginleştirme) Bilişsel Pekiştirme Atölyesi
             cift_kulvar_calisma_studyo_render(
                 DB_PATH,
                 aktif_ogretmen,
@@ -1293,7 +1374,6 @@ elif sayfa == "📇 Bireysel Gelişim Kartı":
             )
             st.markdown("---")
 
-            # 2. Veli Bilgilendirme ve Konu Bazlı Telafi Modülü
             veli_ve_telafi_bolumu_render(
                 aktif_ogretmen,
                 aktif_sube,
@@ -1335,7 +1415,6 @@ elif sayfa == "📇 Bireysel Gelişim Kartı":
 elif sayfa == "📊 Sınıf Gelişim & Zümre Kokpiti":
     st.title("📊 Akıl Haritası — Sınıf Gelişim & Zümre Kokpiti")
     
-    # Sınıf geneli Sabah Isınma Bilmecesi ve Ortak Yanılgı Özeti
     df_sinif_genel = veri_getir(ogretmen=aktif_ogretmen, sinif=aktif_sube)
     sabah_isinma_bilmecesi_render(aktif_ogretmen, aktif_sube, df_sinif_genel, dayanikli_rotasyonlu_cagri)
 
@@ -1479,7 +1558,6 @@ Sadece geçerli JSON döndür:
                     )
                     st.success(f"✅ {len(gorsel_listesi)} sayfalık TYMM Süreç Analizi tamamlandı ve {ogrenci_adi} adına kaydedildi!")
                     
-                    # Kapalı Devre Görev Kodu Kontrolü
                     gorev_kodu_bulunan = str(result.get("tespit_edilen_gorev_kodu", "")).strip()
                     if not gorev_kodu_bulunan:
                         eslesme = re.search(r'GRV-[A-Z0-9]+-\d+', str(result))

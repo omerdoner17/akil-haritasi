@@ -6,8 +6,6 @@ from urllib.parse import quote
 def kesir_seritleri_oyunu_render(ogretmen_adi, sube_adi, ogrenciler):
     ogrenci_listesi_js = ogrenciler if ogrenciler else [{"ad": "Örnek Öğrenci", "maskot": "🦁"}]
     ogrenciler_json = json.dumps(ogrenci_listesi_js, ensure_ascii=False)
-    ogretmen_enc = quote(str(ogretmen_adi))
-    sube_enc = quote(str(sube_adi))
 
     html_code = f"""
 <!DOCTYPE html>
@@ -116,7 +114,7 @@ function autoFit(){{
 window.addEventListener('resize',autoFit);
 function toggleFS(){{if(!document.fullscreenElement)document.documentElement.requestFullscreen().catch(()=>{{}});else document.exitFullscreen();}}
 
-var OGRENCILER = {ogrenciler_json}, OGRETMEN_ENC = "{ogretmen_enc}", SUBE_ENC = "{sube_enc}";
+var OGRENCILER = {ogrenciler_json};
 var tamamlananButunSayisi = 0;
 var sel = document.getElementById("ogrSelect");
 OGRENCILER.forEach(function(o) {{ var opt = document.createElement("option"); opt.value = o.ad; opt.textContent = (o.maskot || "🦁") + " " + o.ad; sel.appendChild(opt); }});
@@ -127,8 +125,35 @@ document.getElementById("btnRandom").onclick = function() {{
 document.getElementById("btnSaveResult").onclick = function() {{
     var ogrAd = sel.value, durum = tamamlananButunSayisi >= 2 ? "İleri Düzey" : (tamamlananButunSayisi === 1 ? "Yetkin Düzey" : "Gelişmekte Olan");
     var guclu = "Birim kesir şeritlerini birleştirerek parça-bütün ilişkisini ve denk kesirleri modelledi (" + tamamlananButunSayisi + " bütün tamamlandı).";
-    new Image().src = "http://127.0.0.1:8765/cark_kaydet?ogr=" + encodeURIComponent(ogrAd) + "&durum=" + encodeURIComponent(durum) + "&gorev=" + encodeURIComponent("Kesir Şeritleri Laboratuvarı") + "&model=" + encodeURIComponent("İnteraktif Kesir Şeritleri") + "&guclu=" + encodeURIComponent(guclu) + "&yanilgi=" + encodeURIComponent("Belirgin bir kavram yanılgısı tespit edilmedi.") + "&oneri=" + encodeURIComponent("Farklı paydalı birim kesirlerle 1 bütün oluşturma çalışmaları sürdürülebilir.") + "&ogretmen=" + OGRETMEN_ENC + "&sube=" + SUBE_ENC;
-    var toast = document.getElementById("saveToast"); toast.style.display = "inline"; setTimeout(function() {{ toast.style.display = "none"; }}, 3000);
+
+    var params = new URLSearchParams({{
+        cark_kaydet: "1",
+        ogr: ogrAd,
+        durum: durum,
+        gorev: "Kesir Şeritleri Laboratuvarı",
+        model: "İnteraktif Kesir Şeritleri",
+        guclu: guclu,
+        yanilgi: "Belirgin bir kavram yanılgısı tespit edilmedi.",
+        oneri: "Farklı paydalı birim kesirlerle 1 bütün oluşturma çalışmaları sürdürülebilir.",
+        ogretmen: "{ogretmen_adi}",
+        sube: "{sube_adi}",
+        t: Date.now().toString()
+    }});
+    try {{
+        var targetWin = window.parent || window;
+        var baseUrl = targetWin.location.href.split("?")[0];
+        targetWin.history.replaceState(null, "", baseUrl + "?" + params.toString());
+        fetch(baseUrl + "?" + params.toString(), {{ mode: "no-cors", cache: "no-store" }}).catch(function() {{}});
+    }} catch (e) {{}}
+
+    var toast = document.getElementById("saveToast"); toast.style.display = "inline";
+    setTimeout(function() {{
+        toast.style.display = "none";
+        try {{
+            var targetWin = window.parent || window;
+            targetWin.location.reload();
+        }} catch (e) {{}}
+    }}, 900);
 }};
 let currentMode = 'free', activeRowIndex = 0, rowsData = [ [] ], score = 0, currentChallengeLevel = 0;
 const challengeLevels = [

@@ -1,5 +1,5 @@
 # app.py
-# Akıl Haritası — İlkokul Süreç & Beceri Kokpiti (Nihai Tam Sürüm - Turso Bulut Veritabanı Entegreli)
+# Akıl Haritası — İlkokul Süreç & Beceri Kokpiti (Nihai Tam Sürüm - libsql-client Turso Entegreli)
 
 import streamlit as st
 import sys
@@ -71,9 +71,9 @@ import time
 import io
 
 try:
-    import libsql_experimental as libsql
+    import libsql_client
 except ImportError:
-    libsql = None
+    libsql_client = None
 
 # ReportLab Türkçe Font ve PDF Bileşenleri
 from reportlab.lib.pagesizes import A4, landscape
@@ -145,67 +145,70 @@ for s_no in [1, 2, 3, 4]:
     for s_harf in ["A", "B", "C", "D", "E"]:
         STANDART_20_SUBE.append(f"{s_no}. Sınıf - {s_harf} Şubesi")
 
-# ----------------- TURSO BULUT & YEREL SQLİTE VERİTABANI MOTORU -----------------
+# ----------------- TURSO BULUT (libsql-client) & YEREL SQLİTE MOTORU -----------------
 DB_PATH = os.path.join(BASE_DIR, "sinif_surec_takip.db")
 
 try:
-    TURSO_URL = st.secrets.get("TURSO_DATABASE_URL", "")
-    TURSO_TOKEN = st.secrets.get("TURSO_AUTH_TOKEN", "")
+    _raw_url = str(st.secrets.get("TURSO_DATABASE_URL", "")).strip()
+    TURSO_HTTP_URL = _raw_url.replace("libsql://", "https://") if _raw_url.startswith("libsql://") else _raw_url
+    TURSO_TOKEN = str(st.secrets.get("TURSO_AUTH_TOKEN", "")).strip()
 except Exception:
-    TURSO_URL = ""
+    TURSO_HTTP_URL = ""
     TURSO_TOKEN = ""
 
-class TursoBaglantiSarmalayici:
-    """Turso bağlantısını standart sqlite3 arayüzü ve otomatik bulut senkronizasyonuyla sarmalar."""
-    def __init__(self, conn):
-        self._conn = conn
-
-    def cursor(self):
-        return self._conn.cursor()
+class TursoHttpCursor:
+    """libsql_client sorgularını standart sqlite3 cursor yapısına uyarlar."""
+    def __init__(self, client):
+        self._client = client
+        self._rows = []
+        self.description = None
 
     def execute(self, sql, params=()):
-        return self._conn.execute(sql, params)
+        param_list = list(params) if params else []
+        res = self._client.execute(sql, param_list)
+        if getattr(res, "columns", None):
+            self.description = [(col,) for col in res.columns]
+        else:
+            self.description = None
+        self._rows = [tuple(r) for r in getattr(res, "rows", [])]
+        return self
+
+    def fetchall(self):
+        return self._rows
+
+    def fetchone(self):
+        return self._rows[0] if self._rows else None
+
+class TursoHttpConnection:
+    """libsql_client bağlantısını sqlite3 connection arayüzüyle sunar."""
+    def __init__(self, url, auth_token):
+        self._client = libsql_client.create_client_sync(url=url, auth_token=auth_token)
+
+    def cursor(self):
+        return TursoHttpCursor(self._client)
+
+    def execute(self, sql, params=()):
+        cur = self.cursor()
+        return cur.execute(sql, params)
 
     def commit(self):
-        self._conn.commit()
-        if hasattr(self._conn, "sync"):
-            try:
-                self._conn.sync()
-            except Exception:
-                pass
+        pass
 
     def close(self):
         try:
-            if hasattr(self._conn, "sync"):
-                self._conn.sync()
-        except Exception:
-            pass
-        try:
-            self._conn.close()
+            self._client.close()
         except Exception:
             pass
 
 def get_db_connection():
-    if libsql is not None and TURSO_URL and TURSO_TOKEN and "BURAYA_" not in TURSO_TOKEN:
+    if libsql_client is not None and TURSO_HTTP_URL and TURSO_TOKEN and "BURAYA_" not in TURSO_TOKEN:
         try:
-            conn = libsql.connect(DB_PATH, sync_url=TURSO_URL, auth_token=TURSO_TOKEN)
-            conn.sync()
-            return TursoBaglantiSarmalayici(conn)
+            return TursoHttpConnection(TURSO_HTTP_URL, TURSO_TOKEN)
         except Exception:
             pass
     conn = sqlite3.connect(DB_PATH, timeout=30)
     conn.execute("PRAGMA journal_mode = WAL")
     return conn
-
-def bulut_veritabani_senkronize_et():
-    """Alt modüller (örn. bilişsel pekiştirme) yerel DB_PATH'e yazdıktan sonra bulutla eşitler."""
-    if libsql is not None and TURSO_URL and TURSO_TOKEN and "BURAYA_" not in TURSO_TOKEN:
-        try:
-            conn = libsql.connect(DB_PATH, sync_url=TURSO_URL, auth_token=TURSO_TOKEN)
-            conn.sync()
-            conn.close()
-        except Exception:
-            pass
 
 def init_db():
     conn = get_db_connection()
@@ -1310,7 +1313,6 @@ elif sayfa == "📇 Bireysel Gelişim Kartı":
                 FONT_NORMAL,
                 FONT_BOLD
             )
-            bulut_veritabani_senkronize_et()
             st.markdown("---")
 
             # 2. Veli Bilgilendirme ve Konu Bazlı Telafi Modülü
@@ -1507,7 +1509,6 @@ Sadece geçerli JSON döndür:
                             gorev_kodu_bulunan = eslesme.group(0)
                             
                     if gorev_kodu_bulunan and dongu_ustalik_guncelle(DB_PATH, gorev_kodu_bulunan):
-                        bulut_veritabani_senkronize_et()
                         st.balloons()
                         st.success(f"🏆 Kâğıt üzerindeki `{gorev_kodu_bulunan}` görev kodu tanındı ve öğrencinin Aralıklı Tekrar Döngüsünde **Ustalık Kazanıldı** olarak işaretlendi!")
 

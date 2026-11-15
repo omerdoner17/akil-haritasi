@@ -6,8 +6,6 @@ from urllib.parse import quote
 def es_anlam_oyunu_render(ogretmen_adi, sube_adi, ogrenciler):
     ogrenci_listesi_js = ogrenciler if ogrenciler else [{"ad": "Örnek Öğrenci", "maskot": "🦁"}]
     ogrenciler_json = json.dumps(ogrenci_listesi_js, ensure_ascii=False)
-    ogretmen_enc = quote(str(ogretmen_adi))
-    sube_enc = quote(str(sube_adi))
 
     html_code = f"""
 <!DOCTYPE html>
@@ -132,7 +130,7 @@ function autoFit(){{
 window.addEventListener('resize',autoFit);
 function toggleFS(){{if(!document.fullscreenElement)document.documentElement.requestFullscreen().catch(()=>{{}});else document.exitFullscreen();}}
 
-var OGRENCILER = {ogrenciler_json}, OGRETMEN_ENC = "{ogretmen_enc}", SUBE_ENC = "{sube_enc}";
+var OGRENCILER = {ogrenciler_json};
 var bulunanEsAnlamSayisi = 0, hataliKartDenemesi = 0, kuraliKesfettiMi = false;
 var sel = document.getElementById("ogrSelect");
 OGRENCILER.forEach(function(o) {{ var opt = document.createElement("option"); opt.value = o.ad; opt.textContent = (o.maskot || "🦁") + " " + o.ad; sel.appendChild(opt); }});
@@ -145,8 +143,35 @@ document.getElementById("btnSaveResult").onclick = function() {{
     if (kuraliKesfettiMi && bulunanEsAnlamSayisi >= 4 && hataliKartDenemesi === 0) {{ durum = "İleri Düzey"; guclu = "Eş anlamlı kelimeleri eksiksiz ayırt etti ve 'Eş Anlam' kuralını keşfetti."; }}
     else if (bulunanEsAnlamSayisi >= 3) {{ durum = "Yetkin Düzey"; guclu = bulunanEsAnlamSayisi + " adet eş anlamlı kelime dönüşümünü tamamladı."; }}
     else {{ durum = "Başlangıç Düzeyi"; if (hataliKartDenemesi > 0) yanilgi = "Eş anlamlısı olmayan kelimeleri eş anlamlı sanarak kutuya attı."; }}
-    new Image().src = "http://127.0.0.1:8765/cark_kaydet?ogr=" + encodeURIComponent(ogrAd) + "&durum=" + encodeURIComponent(durum) + "&gorev=" + encodeURIComponent("Eş Anlamlı Kelimeler (" + bulunanEsAnlamSayisi + " Eşleşme)") + "&model=" + encodeURIComponent("Eş Kardeşlerin Gizemli Kutusu") + "&guclu=" + encodeURIComponent(guclu) + "&yanilgi=" + encodeURIComponent(yanilgi) + "&oneri=" + encodeURIComponent("Eş anlamlı kelime kartlarıyla cümle kurma etkinliği yapılabilir.") + "&ogretmen=" + OGRETMEN_ENC + "&sube=" + SUBE_ENC;
-    var toast = document.getElementById("saveToast"); toast.style.display = "inline"; setTimeout(function() {{ toast.style.display = "none"; }}, 3000);
+
+    var params = new URLSearchParams({{
+        cark_kaydet: "1",
+        ogr: ogrAd,
+        durum: durum,
+        gorev: "Eş Anlamlı Kelimeler (" + bulunanEsAnlamSayisi + " Eşleşme)",
+        model: "Eş Kardeşlerin Gizemli Kutusu",
+        guclu: guclu,
+        yanilgi: yanilgi,
+        oneri: "Eş anlamlı kelime kartlarıyla cümle kurma etkinliği yapılabilir.",
+        ogretmen: "{ogretmen_adi}",
+        sube: "{sube_adi}",
+        t: Date.now().toString()
+    }});
+    try {{
+        var targetWin = window.parent || window;
+        var baseUrl = targetWin.location.href.split("?")[0];
+        targetWin.history.replaceState(null, "", baseUrl + "?" + params.toString());
+        fetch(baseUrl + "?" + params.toString(), {{ mode: "no-cors", cache: "no-store" }}).catch(function() {{}});
+    }} catch (e) {{}}
+
+    var toast = document.getElementById("saveToast"); toast.style.display = "inline";
+    setTimeout(function() {{
+        toast.style.display = "none";
+        try {{
+            var targetWin = window.parent || window;
+            targetWin.location.reload();
+        }} catch (e) {{}}
+    }}, 900);
 }};
 const D=[["Annem bana bir ","hediye"," aldı.","armağan"],["Evimize ","misafir"," geldi.","konuk"],["Sorunun ","cevabını"," söyledim.","yanıtını"],["Bu ","yıl"," çok kitap okudum.","sene"],["Yaşadığım ","şehir"," çok güzel.","kent"],["Bir ","öykü"," okudum.","hikâye"],["Bu ","kelimenin"," anlamını öğrendim.","sözcüğün"],["Geçen gün güzel bir ","anı"," yaşadım.","hatıra"],["Masanın üstünde bir ","kitap"," var.",null],["Çantamda yeni bir ","defter"," var.",null]];
 const $=id=>document.getElementById(id), tray=$("tray"),all=$("all"),screen=$("screen"),out=$("out"),hit=$("hit"),log=$("log"), HINT='<div class="hint">Bir kartı kutunun içine sürükle ve bırak!</div>';

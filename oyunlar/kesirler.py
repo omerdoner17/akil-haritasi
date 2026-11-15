@@ -31,12 +31,11 @@ def kesirler_oyunu_render(aktif_ogretmen, aktif_sube, ogrenciler_listesi):
             .badge {{
                 font-size: 16px; font-weight: 800; color: #0284c7; background: #ffffff;
                 padding: 8px 20px; border-radius: 24px; border: 2px solid #bae6fd;
-                box-shadow: 0 4px 10px rgba(0,0,0,0.04);
             }}
             .reset-btn {{
                 background: #ffffff; color: #475569; border: 2px solid #cbd5e1;
                 border-radius: 20px; padding: 8px 18px; font-size: 14px; font-weight: 700;
-                cursor: pointer; transition: all 0.2s;
+                cursor: pointer; transition: border-color 0.15s, color 0.15s;
             }}
             .reset-btn:hover {{ border-color: #0284c7; color: #0284c7; }}
             .wheel-container {{
@@ -45,27 +44,30 @@ def kesirler_oyunu_render(aktif_ogretmen, aktif_sube, ogrenciler_listesi):
             }}
             canvas {{
                 border-radius: 50%; cursor: pointer;
-                box-shadow: 0 18px 45px rgba(0,0,0,0.15); border: 6px solid #ffffff;
+                border: 6px solid #ffffff;
+                box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12);
+                will-change: transform;
+                transform: translateZ(0);
             }}
             .center-btn {{
                 position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
                 width: 108px; height: 108px; border-radius: 50%;
                 background: radial-gradient(circle, #ef4444 30%, #dc2626 70%, #991b1b 100%);
-                border: 5px solid #ffffff; box-shadow: 0 8px 25px rgba(220,38,38,0.5);
+                border: 5px solid #ffffff; box-shadow: 0 6px 18px rgba(220,38,38,0.4);
                 display: flex; flex-direction: column; align-items: center; justify-content: center;
-                cursor: pointer; z-index: 20; transition: transform 0.15s;
+                cursor: pointer; z-index: 20; transition: transform 0.12s;
             }}
             .center-btn:active {{ transform: translate(-50%, -50%) scale(0.94); }}
             .pointer {{
                 position: absolute; top: 50%; right: -6px; transform: translateY(-50%);
                 width: 0; height: 0; border-top: 20px solid transparent;
                 border-bottom: 20px solid transparent; border-right: 38px solid #f59e0b;
-                z-index: 10; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+                z-index: 10;
             }}
             #questionModal {{
                 display: none; flex-direction: column; align-items: center; justify-content: center;
                 width: 650px; background: #ffffff; border: 3px solid #0284c7;
-                border-radius: 28px; padding: 26px; box-shadow: 0 20px 50px rgba(0,0,0,0.12);
+                border-radius: 28px; padding: 26px; box-shadow: 0 12px 32px rgba(0,0,0,0.1);
             }}
             .student-badge {{
                 font-size: 28px; font-weight: 900; color: #0284c7; margin: 0 0 8px 0;
@@ -88,17 +90,16 @@ def kesirler_oyunu_render(aktif_ogretmen, aktif_sube, ogrenciler_listesi):
             .fraction-bar {{
                 display: flex; width: 540px; height: 90px; border: 4px solid #0f172a;
                 border-radius: 14px; overflow: hidden; margin: 10px 0; background: #f8fafc;
-                box-shadow: 0 6px 16px rgba(0,0,0,0.06);
             }}
             .fraction-slice {{
                 flex: 1; border-right: 2px dashed #94a3b8; cursor: pointer;
                 display: flex; flex-direction: column; align-items: center; justify-content: center;
-                font-size: 18px; font-weight: 800; color: #334155; transition: background 0.15s;
+                font-size: 18px; font-weight: 800; color: #334155; transition: background 0.12s;
             }}
             .fraction-slice:last-child {{ border-right: none; }}
             .fraction-slice.selected {{ background: #0284c7 !important; color: #ffffff; }}
-            svg.pizza-svg {{ width: 220px; height: 220px; cursor: pointer; margin: 6px 0; filter: drop-shadow(0 6px 14px rgba(0,0,0,0.1)); }}
-            path.pizza-slice {{ fill: #f8fafc; stroke: #0f172a; stroke-width: 3; transition: fill 0.15s; }}
+            svg.pizza-svg {{ width: 220px; height: 220px; cursor: pointer; margin: 6px 0; }}
+            path.pizza-slice {{ fill: #f8fafc; stroke: #0f172a; stroke-width: 3; transition: fill 0.12s; }}
             path.pizza-slice.selected {{ fill: #10b981 !important; }}
             .btn-row {{
                 display: flex; gap: 12px; align-items: center; margin-top: 8px;
@@ -106,7 +107,7 @@ def kesirler_oyunu_render(aktif_ogretmen, aktif_sube, ogrenciler_listesi):
             .submit-btn {{
                 padding: 13px 38px; font-size: 18px; font-weight: 900; color: #ffffff;
                 background: linear-gradient(135deg, #10b981, #059669); border: none;
-                border-radius: 30px; cursor: pointer; box-shadow: 0 6px 18px rgba(16,185,129,0.35);
+                border-radius: 30px; cursor: pointer;
             }}
             .submit-btn:active {{ transform: scale(0.97); }}
             .skip-btn {{
@@ -119,7 +120,7 @@ def kesirler_oyunu_render(aktif_ogretmen, aktif_sube, ogrenciler_listesi):
                 25% {{ transform: translateX(-8px); }}
                 75% {{ transform: translateX(8px); }}
             }}
-            .shake-anim {{ animation: shake 0.35s ease-in-out; }}
+            .shake-anim {{ animation: shake 0.3s ease-in-out; }}
         </style>
     </head>
     <body>
@@ -170,7 +171,7 @@ def kesirler_oyunu_render(aktif_ogretmen, aktif_sube, ogrenciler_listesi):
             const ctx = canvas.getContext("2d");
             const palette = ["#38bdf8", "#34d399", "#fb923c", "#a78bfa", "#f472b6", "#22d3ee", "#facc15", "#2dd4bf"];
             
-            let currentRotation = 0;
+            let currentAngleDeg = 0;
             let isSpinning = false;
             let activePureName = "";
             let activeLabel = "";
@@ -180,13 +181,13 @@ def kesirler_oyunu_render(aktif_ogretmen, aktif_sube, ogrenciler_listesi):
             let selectedParts = new Set();
             let mistakeCount = 0;
 
-            function drawWheel() {{
+            function drawWheelStatic() {{
                 ctx.clearRect(0, 0, 460, 460);
                 const count = remainingIndices.length;
                 if (count === 0) return;
                 const arc = (2 * Math.PI) / count;
                 for (let i = 0; i < count; i++) {{
-                    const angle = currentRotation + i * arc;
+                    const angle = i * arc;
                     const realIdx = remainingIndices[i];
                     ctx.fillStyle = palette[realIdx % palette.length];
                     ctx.beginPath();
@@ -204,7 +205,7 @@ def kesirler_oyunu_render(aktif_ogretmen, aktif_sube, ogrenciler_listesi):
                     ctx.restore();
                 }}
             }}
-            drawWheel();
+            drawWheelStatic();
 
             function returnToWheelScreen() {{
                 document.getElementById("questionModal").style.display = "none";
@@ -215,7 +216,10 @@ def kesirler_oyunu_render(aktif_ogretmen, aktif_sube, ogrenciler_listesi):
                     remainingIndices = allLabels.map((_, idx) => idx);
                     document.getElementById("kalanSayac").innerText = "Kalan Öğrenci: " + remainingIndices.length + " / " + allLabels.length;
                 }}
-                drawWheel();
+                canvas.style.transition = "none";
+                currentAngleDeg = currentAngleDeg % 360;
+                canvas.style.transform = `rotate(${{currentAngleDeg}}deg)`;
+                drawWheelStatic();
             }}
 
             document.getElementById("gecBtn").onclick = returnToWheelScreen;
@@ -224,47 +228,37 @@ def kesirler_oyunu_render(aktif_ogretmen, aktif_sube, ogrenciler_listesi):
                 if (isSpinning) return;
                 if (remainingIndices.length === 0) {{
                     remainingIndices = allLabels.map((_, idx) => idx);
-                    drawWheel();
+                    drawWheelStatic();
                 }}
                 isSpinning = true;
                 const count = remainingIndices.length;
                 const chosenPos = Math.floor(Math.random() * count);
-                const arc = (2 * Math.PI) / count;
+                const arcDeg = 360 / count;
 
-                const desiredEndAngle = (2 * Math.PI) - (chosenPos * arc + arc / 2);
-                const currentMod = ((currentRotation % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
-                let delta = desiredEndAngle - currentMod;
-                if (delta < 0) delta += 2 * Math.PI;
+                const desiredEndDeg = 360 - (chosenPos * arcDeg + arcDeg / 2);
+                const currentMod = ((currentAngleDeg % 360) + 360) % 360;
+                let delta = desiredEndDeg - currentMod;
+                if (delta < 0) delta += 360;
 
-                const totalSpin = (6 * 2 * Math.PI) + delta;
-                const startRot = currentRotation;
-                let startTime = null;
-                const duration = 2800;
+                const totalSpinDeg = currentAngleDeg + (5 * 360) + delta;
+                currentAngleDeg = totalSpinDeg;
 
-                function animate(ts) {{
-                    if (!startTime) startTime = ts;
-                    const elapsed = ts - startTime;
-                    const progress = Math.min(elapsed / duration, 1);
-                    const ease = 1 - Math.pow(1 - progress, 3);
-                    currentRotation = startRot + totalSpin * ease;
-                    drawWheel();
+                // GPU Hızlandırmalı Akıcı Dönüş (1.4 sn)
+                canvas.style.transition = "transform 1.4s cubic-bezier(0.15, 0.85, 0.25, 1)";
+                canvas.style.transform = `rotate(${{totalSpinDeg}}deg)`;
 
-                    if (progress < 1) {{
-                        requestAnimationFrame(animate);
-                    }} else {{
-                        isSpinning = false;
-                        const winnerRealIdx = remainingIndices[chosenPos];
-                        activeLabel = allLabels[winnerRealIdx];
-                        activePureName = allPureNames[winnerRealIdx];
+                setTimeout(() => {{
+                    isSpinning = false;
+                    const winnerRealIdx = remainingIndices[chosenPos];
+                    activeLabel = allLabels[winnerRealIdx];
+                    activePureName = allPureNames[winnerRealIdx];
 
-                        remainingIndices.splice(chosenPos, 1);
-                        document.getElementById("kalanSayac").innerText = "Kalan Öğrenci: " + remainingIndices.length + " / " + allLabels.length;
+                    remainingIndices.splice(chosenPos, 1);
+                    document.getElementById("kalanSayac").innerText = "Kalan Öğrenci: " + remainingIndices.length + " / " + allLabels.length;
 
-                        confetti({{ particleCount: 110, spread: 75 }});
-                        setTimeout(() => showQuestionModal(), 1000);
-                    }}
-                }}
-                requestAnimationFrame(animate);
+                    confetti({{ particleCount: 90, spread: 70 }});
+                    setTimeout(() => showQuestionModal(), 550);
+                }}, 1450);
             }}
 
             document.getElementById("ortaCevirBtn").onclick = spinNow;
@@ -272,9 +266,11 @@ def kesirler_oyunu_render(aktif_ogretmen, aktif_sube, ogrenciler_listesi):
 
             document.getElementById("turuSifirlaBtn").onclick = () => {{
                 remainingIndices = allLabels.map((_, idx) => idx);
-                currentRotation = 0;
+                currentAngleDeg = 0;
+                canvas.style.transition = "none";
+                canvas.style.transform = "rotate(0deg)";
                 document.getElementById("kalanSayac").innerText = "Kalan Öğrenci: " + remainingIndices.length + " / " + allLabels.length;
-                drawWheel();
+                drawWheelStatic();
             }};
 
             function renderModels() {{
@@ -362,19 +358,25 @@ def kesirler_oyunu_render(aktif_ogretmen, aktif_sube, ogrenciler_listesi):
             }}
 
             function veritabaninaOtomatikKaydet(ogrenci, durum, gorev, model, yanilgi, oneri, guclu) {{
-                const url = "http://127.0.0.1:8765/cark_kaydet?ogr=" + encodeURIComponent(ogrenci) +
-                            "&durum=" + encodeURIComponent(durum) +
-                            "&gorev=" + encodeURIComponent(gorev) +
-                            "&model=" + encodeURIComponent(model) +
-                            "&yanilgi=" + encodeURIComponent(yanilgi) +
-                            "&oneri=" + encodeURIComponent(oneri) +
-                            "&guclu=" + encodeURIComponent(guclu) +
-                            "&ogretmen=" + encodeURIComponent("{aktif_ogretmen}") +
-                            "&sube=" + encodeURIComponent("{aktif_sube}") +
-                            "&t=" + Date.now();
-                fetch(url, {{ mode: "no-cors", cache: "no-store" }}).catch(e => {{}});
-                const img = new Image();
-                img.src = url + "&beacon=1";
+                const params = new URLSearchParams({{
+                    cark_kaydet: "1",
+                    ogr: ogrenci,
+                    durum: durum,
+                    gorev: gorev,
+                    model: model,
+                    yanilgi: yanilgi,
+                    oneri: oneri,
+                    guclu: guclu,
+                    ogretmen: "{aktif_ogretmen}",
+                    sube: "{aktif_sube}",
+                    t: Date.now().toString()
+                }});
+                try {{
+                    const targetWin = window.parent || window;
+                    const baseUrl = targetWin.location.href.split("?")[0];
+                    targetWin.history.replaceState(null, "", baseUrl + "?" + params.toString());
+                    fetch(baseUrl + "?" + params.toString(), {{ mode: "no-cors", cache: "no-store" }}).catch(() => {{}});
+                }} catch (e) {{}}
             }}
 
             document.getElementById("onaylaBtn").onclick = () => {{
@@ -390,19 +392,24 @@ def kesirler_oyunu_render(aktif_ogretmen, aktif_sube, ogrenciler_listesi):
                         ? "Yok (İlk denemede hatasız modelledi)" 
                         : (mistakeCount + " hatalı denemeden sonra ipucuyla doğru sonuca ulaştı.");
                     const oneri = mistakeCount === 0 
-                        ? "Kesir modelleme kavrayışı tam; sayı doğrusunda basit ve bileşik kesir geçişleriyle zenginleştirilebilir."
+                        ? "Kesir modelleme kavrayışı tam; sayı doğrusunda basit ve bileşik kesir geçişleriyle zenginleştirilebilir." 
                         : "Hatasını yönlendirmeyle fark edip düzeltti; öz-denetimi olumlu. Kavramı pekiştirmek için farklı geometrik modeller sunulabilir.";
                     const guclu = gorevStr + " kesrinin birim parça sayısını ve bütünle ilişkisini " + activeModel + " üzerinde başarıyla kurdu.";
 
                     veritabaninaOtomatikKaydet(activePureName, durum, gorevStr, activeModel, yanilgi, oneri, guclu);
 
-                    confetti({{ particleCount: 140, spread: 80 }});
+                    confetti({{ particleCount: 110, spread: 75 }});
                     msgBox.style.color = "#059669";
                     msgBox.innerText = "🎉 HARİKA! " + activePureName + " doğru modelledi ve karnesine işlendi!";
 
                     setTimeout(() => {{
-                        returnToWheelScreen();
-                    }}, 1600);
+                        try {{
+                            const targetWin = window.parent || window;
+                            targetWin.location.reload();
+                        }} catch (e) {{
+                            returnToWheelScreen();
+                        }}
+                    }}, 1100);
 
                 }} else {{
                     mistakeCount++;
@@ -428,9 +435,3 @@ def kesirler_oyunu_render(aktif_ogretmen, aktif_sube, ogrenciler_listesi):
                         msgBox.innerText = "⚠️ Fazla parça boyadın (" + boyanan + "/" + targetPayda + ")! İpucu: Sadece " + targetPay + " parça boyamalısın. Düzeltip tekrar onayla!";
                     }}
                 }}
-            }};
-        </script>
-    </body>
-    </html>
-    """
-    components.html(html_kod, height=640)

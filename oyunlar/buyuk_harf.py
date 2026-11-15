@@ -6,8 +6,6 @@ from urllib.parse import quote
 def buyuk_harf_oyunu_render(ogretmen_adi, sube_adi, ogrenciler):
     ogrenci_listesi_js = ogrenciler if ogrenciler else [{"ad": "Örnek Öğrenci", "maskot": "🦁"}]
     ogrenciler_json = json.dumps(ogrenci_listesi_js, ensure_ascii=False)
-    ogretmen_enc = quote(str(ogretmen_adi))
-    sube_enc = quote(str(sube_adi))
 
     html_code = f"""
 <!DOCTYPE html>
@@ -73,7 +71,7 @@ function autoFit(){{
 window.addEventListener('resize',autoFit);
 function toggleFS(){{if(!document.fullscreenElement)document.documentElement.requestFullscreen().catch(()=>{{}});else document.exitFullscreen();}}
 
-var OGRENCILER = {ogrenciler_json}, OGRETMEN_ENC = "{ogretmen_enc}", SUBE_ENC = "{sube_enc}";
+var OGRENCILER = {ogrenciler_json};
 var yanlisTiklamaSayisi = 0;
 var sel = document.getElementById("ogrSelect");
 OGRENCILER.forEach(function(o) {{ var opt = document.createElement("option"); opt.value = o.ad; opt.textContent = (o.maskot || "🦁") + " " + o.ad; sel.appendChild(opt); }});
@@ -150,8 +148,35 @@ document.getElementById("btnSaveResult").onclick = function() {{
     var durum = (bulunan >= 5 && yanlisTiklamaSayisi <= 1) ? "İleri Düzey" : (bulunan >= 3 ? "Yetkin Düzey" : "Gelişmekte Olan");
     var guclu = "TDK büyük/küçük harf yazım kurallarına göre " + bulunan + " adet yazım hatasını tespit etti.";
     var yanilgi = yanlisTiklamaSayisi > 2 ? "Doğru yazılmış özel isim veya cins isimleri hatalı sanarak işaretleme eğilimi görüldü." : "Belirgin bir kavram yanılgısı tespit edilmedi.";
-    new Image().src = "http://127.0.0.1:8765/cark_kaydet?ogr=" + encodeURIComponent(ogrAd) + "&durum=" + encodeURIComponent(durum) + "&gorev=" + encodeURIComponent("TDK Büyük Harf Avcısı (" + bulunan + "/28 Hata)") + "&model=" + encodeURIComponent("TDK Büyük Harf Avcısı") + "&guclu=" + encodeURIComponent(guclu) + "&yanilgi=" + encodeURIComponent(yanilgi) + "&oneri=" + encodeURIComponent("Özel adlar, belirli tarihler ve eser adlarının yazımıyla ilgili kısa dikte çalışması yapılabilir.") + "&ogretmen=" + OGRETMEN_ENC + "&sube=" + SUBE_ENC;
-    var toast = document.getElementById("saveToast"); toast.style.display = "inline"; setTimeout(function() {{ toast.style.display = "none"; }}, 3000);
+    
+    var params = new URLSearchParams({{
+        cark_kaydet: "1",
+        ogr: ogrAd,
+        durum: durum,
+        gorev: "TDK Büyük Harf Avcısı (" + bulunan + "/28 Hata)",
+        model: "TDK Büyük Harf Avcısı",
+        guclu: guclu,
+        yanilgi: yanilgi,
+        oneri: "Özel adlar, belirli tarihler ve eser adlarının yazımıyla ilgili kısa dikte çalışması yapılabilir.",
+        ogretmen: "{ogretmen_adi}",
+        sube: "{sube_adi}",
+        t: Date.now().toString()
+    }});
+    try {{
+        var targetWin = window.parent || window;
+        var baseUrl = targetWin.location.href.split("?")[0];
+        targetWin.history.replaceState(null, "", baseUrl + "?" + params.toString());
+        fetch(baseUrl + "?" + params.toString(), {{ mode: "no-cors", cache: "no-store" }}).catch(function() {{}});
+    }} catch (e) {{}}
+
+    var toast = document.getElementById("saveToast"); toast.style.display = "inline";
+    setTimeout(function() {{
+        toast.style.display = "none";
+        try {{
+            var targetWin = window.parent || window;
+            targetWin.location.reload();
+        }} catch (e) {{}}
+    }}, 900);
 }};
 renderStory();
 </script>

@@ -1,7 +1,6 @@
 import streamlit as st
 import json
 import streamlit.components.v1 as components
-from pedagoji_motoru import analiz_uret
 
 def saatler_oyunu_render(aktif_ogretmen, aktif_sube, ogrenciler_listesi):
     if not ogrenciler_listesi:
@@ -240,6 +239,7 @@ def saatler_oyunu_render(aktif_ogretmen, aktif_sube, ogrenciler_listesi):
         let recordSaved = false;
         let gameScore = 0;
         let lastMinute = 0;
+        let currentMission = null;
 
         function addMinutes(delta) {
           currentMinutesOfDay += delta;
@@ -459,7 +459,6 @@ def saatler_oyunu_render(aktif_ogretmen, aktif_sube, ogrenciler_listesi):
           toggleBlind(false);
         });
 
-        // KONTROL ET (MERKEZİ PEDAGOJİ MOTORU İLE ENTEGRE DOĞRU VE HATA ANALİZİ)
         document.getElementById('btnCheckMission').addEventListener('click', () => {
           if (!currentMission) return;
           const { hour24, minute } = getTimeInfo();
@@ -481,17 +480,28 @@ def saatler_oyunu_render(aktif_ogretmen, aktif_sube, ogrenciler_listesi):
             let oneri = isDogru ? "Zaman okuma ve saat modelleme becerisi tam; problem kurma aşamasına geçilebilir." : "CPA yaklaşımına göre fiziksel saat modelleriyle 24 saatlik zaman dilimleri tekrarlanmalı.";
             let guclu = isDogru ? "Analog saat üzerinde zamanı hatasız modelledi." : "Materyali kullanma ve deneme yapma motivasyonu yüksek.";
 
-            let url = "http://127.0.0.1:8765/cark_kaydet?ogr=" + encodeURIComponent(ogr) +
-                      "&durum=" + encodeURIComponent(durum) +
-                      "&gorev=" + encodeURIComponent(currentMission.text) +
-                      "&model=" + encodeURIComponent("Zaman Yarışı Analog Saat") +
-                      "&yanilgi=" + encodeURIComponent(yanilgi) +
-                      "&oneri=" + encodeURIComponent(oneri) +
-                      "&guclu=" + encodeURIComponent(guclu) +
-                      "&ogretmen=" + encodeURIComponent(globalOgretmen) +
-                      "&sube=" + encodeURIComponent(globalSube) +
-                      "&t=" + Date.now();
-            let ping = new Image(); ping.src = url;
+            let params = new URLSearchParams({
+              cark_kaydet: "1",
+              ogr: ogr,
+              durum: durum,
+              gorev: currentMission.text,
+              model: "Zaman Yarışı Analog Saat",
+              yanilgi: yanilgi,
+              oneri: oneri,
+              guclu: guclu,
+              ogretmen: globalOgretmen,
+              sube: globalSube,
+              t: Date.now().toString()
+            });
+            try {
+              let targetWin = window.parent || window;
+              let baseUrl = targetWin.location.href.split("?")[0];
+              targetWin.history.replaceState(null, "", baseUrl + "?" + params.toString());
+              fetch(baseUrl + "?" + params.toString(), { mode: "no-cors", cache: "no-store" }).catch(() => {});
+              setTimeout(() => {
+                try { targetWin.location.reload(); } catch (e) {}
+              }, 900);
+            } catch (e) {}
           }
         });
 

@@ -3,4 +3,4 @@ google-genai
 pandas
 Pillow
 reportlab
-libsql-experimental
+libsql-client
